@@ -1,19 +1,38 @@
-use crossterm::{
+/*use crossterm::{
     event::{read, Event::Key, KeyCode, poll, KeyModifiers},
     terminal,
     Result};
+*/
 
-use std::time::Duration;
+use crossterm::{event::Event::*, terminal, Result};
 
-use errno::errno;
+//use std::time::Duration;
 
-// Function to read a single event i.e char by char input
+mod keyboard;
+
+mod input;
+use input::*;
+
+mod output;
+use output::*;
+
+
 fn main() -> Result<()> { 
-    //Result<T, E> is the type used for returning and propagating errors
     
     terminal::enable_raw_mode()?;   // Step 5 - enabling raw mode during input
 
-    loop{ 
+    loop{
+        if editor_refresh_screen().is_err(){
+            die("Unable to refresh screen");
+        }
+
+        if editor_process_keypress(){
+            break;
+        }
+    }
+
+
+/*    loop{ 
         let mut c = None;
 
         match poll(Duration::from_millis(100)) {     // Timeout for read
@@ -43,14 +62,11 @@ fn main() -> Result<()> {
             println!("no key\r");
         }
     }
+*/
+
     terminal::disable_raw_mode()?;  // Step 6 - restoring the terminal mode after quitting
 
     Ok(())  // Ok() represents success - return from a function
 }
 
-// Function for exiting the program
-pub fn die<S: Into<String>>(message: S){
-    let _ = terminal::disable_raw_mode();
-    eprintln!("{}: {}", message.into(), errno());
-    std::process::exit(1);
-}
+
