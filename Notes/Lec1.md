@@ -1,3 +1,6 @@
+# **From Step 0 to Step 29**
+
+
 These are my notes form the Lecture 1 of the "Porting text editor in Rust" playlist. The topics are mentioned in the order of their arrival in the video for easier tracking and reference.
 
 ### Doubts - 
@@ -6,7 +9,8 @@ These are my notes form the Lecture 1 of the "Porting text editor in Rust" playl
 - In linux terminal, cooked mode has several flags and raw mode has several flags, but without doing anything, the terminal's flags are neither completely in raw mode nor in cooked mode.- timeout for read() - step 16 - req (for 1/10 ms)? 
 - Error handling -> NO error shown after match introduced whereas video has the error?	
 - Ok(true) and Ok(false) usage?
-
+- For condition if editor_refresh_screen.isErr(){}, why the task of the function is performedeven if there is no error? And if it is performed then why unused import warning? (main.rs and output.rs)
+- Step 24 is not implemented correctly, how to bring clear screen after clicking ctrl-q? (affects step 25)
 
 ## Cargo
 Original document - https://doc.rust-lang.org/book/ch01-03-hello-cargo.html
@@ -95,19 +99,31 @@ The ? operator can be called on *Result* and *Option* types only. For example, i
 
 Reference article - https://man7.org/linux/man-pages/man1/stty.1.html
 
-icrnl	- to translate carriage return to newline
+- icrnl	- to translate carriage return to newline
 	- turns off Ctrl-M (carriage return) (Step 12)
-ixon	- enable XON/XOFF flow control 
+- ixon	- enable XON/XOFF flow control 
 	- turn off ctrl-s and ctrl-q (Step 10)
-icanon	- enable special characters: erase, kill, werase, rprnt
+- icanon	- enable special characters: erase, kill, werase, rprnt
 	- turns off canonical mode (step 7)
-opost	- postprocess output
+- opost	- postprocess output
 	- translation of "\n" to "\r\n" (Step 13)
-isig	- enable interrupt, quit, and suspend special characters
+- isig	- enable interrupt, quit, and suspend special characters
 	- turn off ctrl-c ctrl-z (step 9)
 
 Ctrl-i : gives tab
+
 Ctrl-m : gives enter
+
 Ctrl-q : exits
 
+## if let vs match
 
+Reference article - https://patshaughnessy.net/2018/1/18/learning-rust-if-let-vs--match#:~:text=If%20Let%20Compares%20a%20Pattern,code%20inside%20the%20block.
+
+if let is sugar syntatic of match i.e both performs exactly same and gives same executable code.
+
+## Use of unreachable!()
+
+Indicates unreachable code. This is useful any time that the compiler can’t determine that some code is unreachable. For example: Loops that dynamically terminate.
+
+**CAUTION:** Step 26 is skipped.
