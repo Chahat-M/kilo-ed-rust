@@ -4,7 +4,7 @@
     Result};
 */
 
-use crossterm::{event::Event::*, terminal, Result};
+/*use crossterm::{event::Event::*, terminal, Result};
 
 //use std::time::Duration;
 
@@ -15,13 +15,21 @@ use input::*;
 
 mod output;
 use output::*;
+*/
 
+use crossterm::{terminal, Result};
+
+mod editor;
+use editor::*;
 
 fn main() -> Result<()> { 
     
+    let editor = Editor::new()?;
+    println!("editor dimensions: {editor:?}");
+
     terminal::enable_raw_mode()?;   // Step 5 - enabling raw mode during input
 
-    loop{
+    /*loop{
         if editor_refresh_screen().is_err(){
             die("Unable to refresh screen");
         }
@@ -29,8 +37,17 @@ fn main() -> Result<()> {
         if editor_process_keypress(){
             break;
         }
-    }
+    }*/
+    
+        loop{
+        if editor.refresh_screen().is_err(){
+            editor.die("Unable to refresh screen");
+        }
 
+        if editor.process_keypress(){
+            break;
+        }
+    }
 
 /*    loop{ 
         let mut c = None;
