@@ -1,97 +1,84 @@
-use crossterm::event::{read, Event::*, KeyCode, KeyModifiers, KeyEvent};
+use crossterm::event::{KeyCode, KeyModifiers, KeyEvent};
 
-use std::io::{stdout, Write, Stdout};
+use std::io::{stdout, Write};
 
-use crossterm::{QueueableCommand, style::Print, terminal, cursor, Result};
+use crossterm::{QueueableCommand, terminal, cursor, Result};
 
 use errno::errno;
 
-#[derive(Debug)]
+use crate::screen::*;
+use crate::keyboard::*;
+
+use kilo_ed_rust::*;
+
 pub struct Editor {
-    height : u16,
-    width : u16,
+    screen : Screen,
+    keyboard : Keyboard
 }
 
 impl Editor {
     pub fn new() -> Result<Self> {
-        let (columns, rows) = crossterm::terminal::size()?;
         Ok(Self {
-            width : columns,
-            height : rows
+            screen : Screen::new()?,
+            keyboard : Keyboard {},
         })
     }
     
-    //From input.rs
+    // Function to start the editor
+    pub fn start(&mut self) -> Result<()> {
+        terminal::enable_raw_mode()?;   // Step 5 - enabling raw mode during input
+
+        loop{
+            if self.refresh_screen().is_err(){
+                self.die("Unable to refresh screen");
+            }
+            if self.process_keypress(){
+                break;
+            }
+        }
+
+        // To resolve error of Step 24
+        let clear = if let Ok(clear) = self.screen.clear(){
+            clear;
+          };
+
+        terminal::disable_raw_mode() // Step 6 - restoring the terminal mode after quitting
+    }
+
+    // Function to accept input till Ctrl-q is pressed
     // Waits for a keypress and then handles it.
-    // Accepts input till Ctrl-q is pressed
-    pub fn process_keypress(&self) -> bool {
-        let c = self.read_key();
+    pub fn process_keypress(&mut self) -> bool {
+        let c = self.keyboard.read_key();
 
         match c {
             Ok(KeyEvent {
                 code: KeyCode::Char('q'),
                 modifiers: KeyModifiers::CONTROL,
             }) => true,
+            Err(ResultCode::KeyReadFail) => {
+                self.die("Unable to read from keyboard");
+                false
+            },
             _ => false,
         }
     }
 
-    // From output.rs
-    // To clear the screen and move the cursor to top left
-    pub fn clear_screen(&self, stdout: &mut Stdout) -> Result<()>{
-
-        stdout
-            .queue(terminal::Clear(terminal::ClearType::All))?
-            .queue(cursor::MoveTo(0,0))? // 1st(column, row)
-            .flush()
-    }
-
-    // To draw Tildes(~) on the screen
-    pub fn draw_tildes(&self, stdout: &mut Stdout) -> Result<()>{
-        for row in 0..self.height {
-            stdout
-                .queue(cursor::MoveTo(0,row))?
-                .queue(Print("~".to_string()))?;
-            //println!("~\r");
-        }
-
-        Ok(())
-    }
-
-    // To refresh the screen and move the cursor to top-left
-    pub fn refresh_screen(&self) -> Result<()> {
+    // Function to refresh the screen and move the cursor to top-left
+    pub fn refresh_screen(&mut self) -> Result<()> {
         let mut stdout = stdout();
 
-        self.clear_screen(&mut stdout)?;
-        self.draw_tildes(&mut stdout)?;
+        self.screen.clear()?;
+        self.screen.draw_tildes()?;
 
         stdout.queue(cursor::MoveTo(0,0))?.flush()
 
     }
 
-    // Function for exiting the program
-    pub fn die<S: Into<String>>(&self, message: S){
-        let mut stdout = stdout();
-        let _= self.clear_screen(&mut stdout);
+    // Function to exit the program
+    pub fn die<S: Into<String>>(&mut self, message: S) {
+        let _= self.screen.clear();
         let _ = terminal::disable_raw_mode();
         eprintln!("{}: {}", message.into(), errno());
         std::process::exit(1);
     }
-
-    // From keyboard.rs
-    // Waits for one keypress and return it.
-    pub fn read_key(&self) -> Result<KeyEvent> {
-        loop{
-            if let Ok(event) = read() {
-                if let Key(key_event) = event{
-                    return Ok(key_event);
-                }
-            } else {
-                self.die("Read error");
-                break;
-            }
-        }
-        unreachable!();
-    }
-
 }

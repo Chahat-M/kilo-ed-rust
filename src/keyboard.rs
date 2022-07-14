@@ -1,18 +1,21 @@
-use crossterm::event::{read, KeyEvent};
+use crossterm::event::{read, Event::*, KeyEvent};
 
-use crate::*;
+use kilo_ed_rust::*;
 
-// Waits for one keypress and return it.
-pub fn editor_read_key() -> Result<KeyEvent> {
-    loop{
-        if let Ok(event) = read() {
-            if let Key(key_event) = event{
-                return Ok(key_event);
+pub struct Keyboard;
+
+impl Keyboard {
+    // Function that waits for one keypress and return it.
+    pub fn read_key(&self) -> EditorResult<KeyEvent, ResultCode> {
+        loop{
+            if let Ok(event) = read() {
+                if let Key(key_event) = event {
+                    return Ok(key_event);
+                }
+            } else {
+                return Err(ResultCode::KeyReadFail);
             }
-        } else {
-            die("Read error");
-            break;
         }
     }
-    unreachable!();
 }
+
