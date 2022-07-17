@@ -47,6 +47,7 @@ impl Editor {
 
     // Function to accept input till Ctrl-q is pressed
     // Waits for a keypress and then handles it.
+    // Can check changes.rs for own definition
     pub fn process_keypress(&mut self) -> bool {
         let c = self.keyboard.read_key();
 

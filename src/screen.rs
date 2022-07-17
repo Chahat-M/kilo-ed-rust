@@ -18,7 +18,8 @@ impl Screen {
         })
     }
     
-    // To clear the screen and move the cursor to top left
+    // Function to clear the screen and move the cursor to top left
+    // Can check changes.rs
     pub fn clear(&mut self) -> Result<()>{
 
         self.stdout
@@ -27,17 +28,53 @@ impl Screen {
                 .flush()
     }
 
-    // To draw Tildes(~) on the screen
+    // Function to draw Tildes(~) on the screen
+    // Can check changes.rs
     pub fn draw_tildes(&mut self) -> Result<()>{
         for row in 0..self.height {
-            self.stdout
+            const VERSION: &str = env!("CARGO_PKG_VERSION");
+            
+            // Welcome msg along with tilde
+            if row == self.height/3 {
+                let mut welcome = format!("Kilo Editor -- version {VERSION}");
+                welcome.truncate(self.width as usize);
+                
+                // Centering welcome msg with tildes
+                if welcome.len() < self.width as usize {
+                    let leftmost = (self.width - welcome.len() as u16)/2;
+                    self.stdout
+                        .queue(cursor::MoveTo(0,row))?
+                        .queue(Print("~".to_string()))?
+                        .queue(cursor::MoveTo(leftmost,row))?
+                        .queue(Print(welcome))?;
+                }
+                else {
+                    self.stdout
+                        .queue(cursor::MoveTo(0,row))?
+                        .queue(Print(welcome))?;
+                }
+            }
+
+            // Tildes on all lines
+            else {
+                self.stdout
                     .queue(cursor::MoveTo(0,row))?
                     .queue(Print("~".to_string()))?;
-            //println!("~\r");
+                    /* For Step 40 - check it 
+                    .queue(terminal::Clear(terminal::ClearType::UntilNewLine))?;
+                    */
+                //println!("~\r");
+            }
         }
         
         self.stdout.flush()
 //        Ok(())
     }
+
+    // Function to know the cursor position
+    pub fn cursor_position(&self) -> Result<(u16, u16)> {
+        cursor::position()
+    }
+
 }
 
