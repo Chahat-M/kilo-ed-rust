@@ -5,12 +5,12 @@ These are my notes form the Lecture 1 of the "Porting text editor in Rust" playl
 
 ### Doubts - 
 - How let Key() is used?
-- For turning off some signals, flags are checked. Now, for example, I can press ctrl-c and ctrl-z as input, which means it is already disabled but its associated flag isig is turned on (no -ve sign). Confusion?ignbrk 
+- For turning off some signals, flags are checked. Now, for example, I can press ctrl-c and ctrl-z as input, which means it is already disabled but its associated flag isig is turned on (no -ve sign). Confusion? 
 - In linux terminal, cooked mode has several flags and raw mode has several flags, but without doing anything, the terminal's flags are neither completely in raw mode nor in cooked mode.- timeout for read() - step 16 - req (for 1/10 ms)? 
-- Error handling -> NO error shown after match introduced whereas video has the error?	
+- Error handling -> No error shown after match introduced whereas video has the error?	
 - Ok(true) and Ok(false) usage?
-- For condition if editor_refresh_screen.isErr(){}, why the task of the function is performedeven if there is no error? And if it is performed then why unused import warning? (main.rs and output.rs)
-- Step 24 is not implemented correctly, how to bring clear screen after clicking ctrl-q? (affects step 25)
+- Step 24 is not implemented correctly, how to bring clear screen after clicking ctrl-q? (affects step 25) [ Corrected - in main.rs file - needs to be checked though ]
+
 
 ## Cargo
 Original document - https://doc.rust-lang.org/book/ch01-03-hello-cargo.html
