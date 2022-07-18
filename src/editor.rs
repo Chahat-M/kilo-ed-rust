@@ -13,7 +13,10 @@ use kilo_ed_rust::*;
 
 use std::collections::HashMap;
 
-#[derive(Copy, Clone)]
+// Copy -> to give EditorKey Copy semantics instead of Move semantics
+// Clone -> to create T from &T via a copy
+// Types that are Copy should have a trivial implementation of Clone, hence both used.
+#[derive(Copy, Clone)] 
 enum EditorKey {
     ArrowUp,
     ArrowDown,
@@ -60,9 +63,9 @@ impl Editor {
         }
 
         // To resolve error of Step 24
-        let clear = if let Ok(clear) = self.screen.clear(){
-            clear;
-          };
+        let cl = if let Ok(cl) = self.screen.clear(){
+            cl
+        };
 
         terminal::disable_raw_mode() // Step 6 - restoring the terminal mode after quitting
     }
@@ -71,6 +74,8 @@ impl Editor {
     // Waits for a keypress and then handles it.
     // Can check changes.rs for own definition
     pub fn process_keypress(&mut self) -> Result<bool> {
+        let bounds = self.screen.bounds();
+        
         if let Ok(c) = self.keyboard.read_key(){
             match c {
                 // Ctrl-q to exit
@@ -78,39 +83,35 @@ impl Editor {
                     code: KeyCode::Char('q'),       
                     modifiers: KeyModifiers::CONTROL,
                 } => return Ok(true),
-
-                // Cursor movement through arrow keys
-                KeyEvent { 
-                    code : KeyCode::Up,
-                    modifiers : _
-                } => self.move_cursor(EditorKey::ArrowUp),
-                KeyEvent { 
-                    code : KeyCode::Down,
-                    modifiers : _
-                } => self.move_cursor(EditorKey::ArrowDown),
-                KeyEvent { 
-                    code : KeyCode::Left,
-                    modifiers : _
-                } => self.move_cursor(EditorKey::ArrowLeft),
-                KeyEvent { 
-                    code : KeyCode::Right, 
-                    modifiers : _
-                } => self.move_cursor(EditorKey::ArrowRight),
-
+                
                 // Cursor movement through 'wasd'
                 KeyEvent {
                     code : KeyCode::Char(key),
                     modifiers : _
-                } => {
-                    match key{
-                        'w' | 'a' | 's' | 'd' =>{
-                            let temp = *self.keymap.get(&key).unwrap();
-                            self.move_cursor(temp);
-                        },
-                        _ => {}
-                    }
-                }
-                _ => {}
+                } => match key {
+                    'w' | 'a' | 's' | 'd' =>{
+                        let temp = *self.keymap.get(&key).unwrap();
+                        self.move_cursor(temp);
+                    },
+                    _ => {}
+                },
+
+                // Cursor movement through arrow keys
+                KeyEvent { code, modifiers : _ } => match code {
+                    KeyCode::Home => self.cursor.x = 0,
+                    KeyCode::End => self.cursor.x = bounds.x - 1,
+                    KeyCode::Up => self.move_cursor(EditorKey::ArrowUp),
+                    KeyCode::Down => self.move_cursor(EditorKey::ArrowDown),
+                    KeyCode::Left => self.move_cursor(EditorKey::ArrowLeft),
+                    KeyCode::Right => self.move_cursor(EditorKey::ArrowRight),
+                    KeyCode::PageUp | KeyCode::PageDown => {
+                        for _ in 0..bounds.y {
+                            self.move_cursor( if code == KeyCode::PageUp {EditorKey::ArrowUp}
+                                             else {EditorKey::ArrowDown} )
+                        }
+                    },
+                    _ => {}
+                },
             }
         }
         else {
@@ -151,7 +152,7 @@ impl Editor {
             ArrowRight => self.cursor.x += 1, 
             //{ self.cursor.x = self.cursor.x.saturating_add(1) },
             ArrowUp => { self.cursor.y = self.cursor.y.saturating_sub(1) },
-            ArrowDown => self.cursor.y += 1,
+            ArrowDown =>  self.cursor.y += 1
         }
     }
 }

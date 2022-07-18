@@ -84,5 +84,12 @@ impl Screen {
         Ok(())
     }
 
+    pub fn bounds(&self)  -> CursorPos {
+        CursorPos {
+            x : self.width,
+            y : self.height
+        }
+    }
+
 }
 
