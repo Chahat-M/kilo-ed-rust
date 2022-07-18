@@ -2,6 +2,8 @@ use std::io::{stdout, Write, Stdout};
 
 use crossterm::{QueueableCommand, style::Print, terminal, cursor, Result};
 
+use kilo_ed_rust::*;
+
 pub struct Screen {
     height : u16,
     width : u16,
@@ -67,13 +69,19 @@ impl Screen {
             }
         }
         
-        self.stdout.flush()
-//        Ok(())
+       self.stdout.flush()
+//       Ok(())
     }
 
     // Function to know the cursor position
     pub fn cursor_position(&self) -> Result<(u16, u16)> {
         cursor::position()
+    }
+    
+    // Function to move the cursor to desired position
+    pub fn move_to(&mut self, position : &CursorPos) -> Result<()> {
+        self.stdout.queue(cursor::MoveTo(position.x, position.y))?;
+        Ok(())
     }
 
 }

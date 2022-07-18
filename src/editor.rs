@@ -11,16 +11,37 @@ use crate::keyboard::*;
 
 use kilo_ed_rust::*;
 
+use std::collections::HashMap;
+
+#[derive(Copy, Clone)]
+enum EditorKey {
+    ArrowUp,
+    ArrowDown,
+    ArrowLeft,
+    ArrowRight
+}
+
 pub struct Editor {
     screen : Screen,
-    keyboard : Keyboard
+    keyboard : Keyboard,
+    cursor : CursorPos,
+    keymap : HashMap<char, EditorKey>
 }
 
 impl Editor {
     pub fn new() -> Result<Self> {
+
+        let mut keymap = HashMap::new();
+        keymap.insert('w', EditorKey::ArrowUp);
+        keymap.insert('s', EditorKey::ArrowDown);
+        keymap.insert('a', EditorKey::ArrowLeft);
+        keymap.insert('d', EditorKey::ArrowRight);
+
         Ok(Self {
             screen : Screen::new()?,
             keyboard : Keyboard {},
+            cursor : CursorPos::default(),  // Initially - at default position
+            keymap
         })
     }
     
@@ -32,7 +53,8 @@ impl Editor {
             if self.refresh_screen().is_err(){
                 self.die("Unable to refresh screen");
             }
-            if self.process_keypress(){
+          
+            if self.process_keypress()? {
                 break;
             }
         }
@@ -48,20 +70,53 @@ impl Editor {
     // Function to accept input till Ctrl-q is pressed
     // Waits for a keypress and then handles it.
     // Can check changes.rs for own definition
-    pub fn process_keypress(&mut self) -> bool {
-        let c = self.keyboard.read_key();
+    pub fn process_keypress(&mut self) -> Result<bool> {
+        if let Ok(c) = self.keyboard.read_key(){
+            match c {
+                // Ctrl-q to exit
+                KeyEvent {
+                    code: KeyCode::Char('q'),       
+                    modifiers: KeyModifiers::CONTROL,
+                } => return Ok(true),
 
-        match c {
-            Ok(KeyEvent {
-                code: KeyCode::Char('q'),
-                modifiers: KeyModifiers::CONTROL,
-            }) => true,
-            Err(ResultCode::KeyReadFail) => {
-                self.die("Unable to read from keyboard");
-                false
-            },
-            _ => false,
+                // Cursor movement through arrow keys
+                KeyEvent { 
+                    code : KeyCode::Up,
+                    modifiers : _
+                } => self.move_cursor(EditorKey::ArrowUp),
+                KeyEvent { 
+                    code : KeyCode::Down,
+                    modifiers : _
+                } => self.move_cursor(EditorKey::ArrowDown),
+                KeyEvent { 
+                    code : KeyCode::Left,
+                    modifiers : _
+                } => self.move_cursor(EditorKey::ArrowLeft),
+                KeyEvent { 
+                    code : KeyCode::Right, 
+                    modifiers : _
+                } => self.move_cursor(EditorKey::ArrowRight),
+
+                // Cursor movement through 'wasd'
+                KeyEvent {
+                    code : KeyCode::Char(key),
+                    modifiers : _
+                } => {
+                    match key{
+                        'w' | 'a' | 's' | 'd' =>{
+                            let temp = *self.keymap.get(&key).unwrap();
+                            self.move_cursor(temp);
+                        },
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
         }
+        else {
+            self.die("Unable to read from keyboard");
+        }
+        Ok(false)
     }
 
     // Function to refresh the screen and move the cursor to top-left
@@ -70,8 +125,11 @@ impl Editor {
 
         self.screen.clear()?;
         self.screen.draw_tildes()?;
+        self.screen.move_to(&self.cursor)?;
+        
+        stdout.flush()
 
-        stdout.queue(cursor::MoveTo(0,0))?.flush()
+//        stdout.queue(cursor::MoveTo(0,0))?.flush()
 
     }
 
@@ -81,5 +139,19 @@ impl Editor {
         let _ = terminal::disable_raw_mode();
         eprintln!("{}: {}", message.into(), errno());
         std::process::exit(1);
+    }
+    
+    // Function to allow cursor movement
+    // Left a, Right d, Up w, Down s
+    fn move_cursor(&mut self, key : EditorKey) {
+       use EditorKey::*;
+
+        match key {
+            ArrowLeft => { self.cursor.x = self.cursor.x.saturating_sub(1) }, 
+            ArrowRight => self.cursor.x += 1, 
+            //{ self.cursor.x = self.cursor.x.saturating_add(1) },
+            ArrowUp => { self.cursor.y = self.cursor.y.saturating_sub(1) },
+            ArrowDown => self.cursor.y += 1,
+        }
     }
 }
