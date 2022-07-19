@@ -28,12 +28,13 @@ pub struct Editor {
     screen : Screen,
     keyboard : Keyboard,
     cursor : CursorPos,
-    keymap : HashMap<char, EditorKey>
+    keymap : HashMap<char, EditorKey>,
+    rows : Vec<String>
 }
 
 impl Editor {
     pub fn new() -> Result<Self> {
-
+        // Inserting cursor movements to HashMap
         let mut keymap = HashMap::new();
         keymap.insert('w', EditorKey::ArrowUp);
         keymap.insert('s', EditorKey::ArrowDown);
@@ -44,7 +45,8 @@ impl Editor {
             screen : Screen::new()?,
             keyboard : Keyboard {},
             cursor : CursorPos::default(),  // Initially - at default position
-            keymap
+            keymap,
+            rows : vec!["Hello World!".to_string()]
         })
     }
     
@@ -125,7 +127,7 @@ impl Editor {
         let mut stdout = stdout();
 
         self.screen.clear()?;
-        self.screen.draw_tildes()?;
+        self.screen.draw_tildes(&self.rows)?;
         self.screen.move_to(&self.cursor)?;
         
         stdout.flush()
