@@ -57,13 +57,16 @@ impl Editor {
         keymap.insert('s', EditorKey::ArrowDown);
         keymap.insert('a', EditorKey::ArrowLeft);
         keymap.insert('d', EditorKey::ArrowRight);
+    
+       let data = data.into();
 
         Ok(Self {
             screen : Screen::new()?,
             keyboard : Keyboard {},
             cursor : CursorPos::default(),  // Initially - at default position
             keymap,
-            rows : vec![data.into()]
+            rows : if data.is_empty() { Vec::new() } else {vec![data]}
+            // Useful during hiding welcome msg
         })
     }
     

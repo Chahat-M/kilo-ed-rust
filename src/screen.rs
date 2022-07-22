@@ -38,7 +38,7 @@ impl Screen {
             const VERSION: &str = env!("CARGO_PKG_VERSION");
             if row >= erows.len() as u16 {
                 // Welcome msg along with tilde
-                if row == self.height/3 {
+                if erows.len() == 0 && row == self.height/3 {
                     let mut welcome = format!("Kilo Editor -- version {VERSION}");
                     welcome.truncate(self.width as usize);
 
