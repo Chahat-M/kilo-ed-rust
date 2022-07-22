@@ -13,6 +13,8 @@ use kilo_ed_rust::*;
 
 use std::collections::HashMap;
 
+use std::path::Path;
+
 // Copy -> to give EditorKey Copy semantics instead of Move semantics
 // Clone -> to create T from &T via a copy
 // Types that are Copy should have a trivial implementation of Clone, hence both used.
@@ -33,7 +35,22 @@ pub struct Editor {
 }
 
 impl Editor {
+    // Function to open and read first line if the filename is passed
+    pub fn open_file<P: AsRef<Path>>(filename: P) -> Result<Self> {
+        let first_line = std::fs::read_to_string(filename)
+            .expect("Unable to open file")
+            .split('\n')
+            .next()
+            .unwrap() 
+            .to_string();
+        Editor::build(first_line)
+    }
+
     pub fn new() -> Result<Self> {
+        Editor::build("")
+    }
+
+    fn build<T: Into<String>>(data: T) -> Result<Self> {
         // Inserting cursor movements to HashMap
         let mut keymap = HashMap::new();
         keymap.insert('w', EditorKey::ArrowUp);
@@ -46,7 +63,7 @@ impl Editor {
             keyboard : Keyboard {},
             cursor : CursorPos::default(),  // Initially - at default position
             keymap,
-            rows : vec!["Hello World!".to_string()]
+            rows : vec![data.into()]
         })
     }
     

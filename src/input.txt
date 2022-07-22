@@ -1,0 +1,3 @@
+Hey!! I'm Chahat Mittal.
+Learning Rust 
+Currently a beginner

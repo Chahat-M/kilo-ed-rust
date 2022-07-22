@@ -31,6 +31,7 @@ impl Screen {
     }
 
     // Function to draw Tildes(~) on the screen
+    // Alongwith welcome msg and rows
     // Can check changes.rs
     pub fn draw_tildes(&mut self, erows : &[String]) -> Result<()>{
         for row in 0..self.height {
@@ -68,14 +69,10 @@ impl Screen {
                     //println!("~\r");
                 }
             }
+
+            // Printing the row
             else {
                 let len = erows[0].len().min(self.width as usize);
-                /*let len = if erows[0].len() > self.width as usize {
-                    self.width as usize;
-                }
-                else {
-                    erows[0].len() as u16;
-                };*/
                 self.stdout
                     .queue(cursor::MoveTo(0,row))?
                     .queue(Print(erows[0][0..len].to_string()))?;
