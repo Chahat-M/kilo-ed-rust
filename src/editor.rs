@@ -37,20 +37,20 @@ pub struct Editor {
 impl Editor {
     // Function to open and read first line if the filename is passed
     pub fn open_file<P: AsRef<Path>>(filename: P) -> Result<Self> {
-        let first_line = std::fs::read_to_string(filename)
+        let lines = std::fs::read_to_string(filename)
             .expect("Unable to open file")
             .split('\n')
-            .next()
-            .unwrap() 
-            .to_string();
-        Editor::build(first_line)
+            .map(|x| x.into()) 
+            .collect::<Vec<String>>();
+        println!("{:?}",&lines);
+        Editor::build(&lines)
     }
 
     pub fn new() -> Result<Self> {
-        Editor::build("")
+        Editor::build(&[])
     }
 
-    fn build<T: Into<String>>(data: T) -> Result<Self> {
+    fn build(data: &[String]) -> Result<Self> {
         // Inserting cursor movements to HashMap
         let mut keymap = HashMap::new();
         keymap.insert('w', EditorKey::ArrowUp);
@@ -58,14 +58,12 @@ impl Editor {
         keymap.insert('a', EditorKey::ArrowLeft);
         keymap.insert('d', EditorKey::ArrowRight);
     
-       let data = data.into();
-
         Ok(Self {
             screen : Screen::new()?,
             keyboard : Keyboard {},
             cursor : CursorPos::default(),  // Initially - at default position
             keymap,
-            rows : if data.is_empty() { Vec::new() } else {vec![data]}
+            rows : if data.is_empty() { Vec::new() } else {Vec::from(data)}
             // Useful during hiding welcome msg
         })
     }

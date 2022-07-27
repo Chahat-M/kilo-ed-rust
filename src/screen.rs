@@ -72,10 +72,10 @@ impl Screen {
 
             // Printing the row
             else {
-                let len = erows[0].len().min(self.width as usize);
+                let len = erows[row as usize].len().min(self.width as usize);
                 self.stdout
                     .queue(cursor::MoveTo(0,row))?
-                    .queue(Print(erows[0][0..len].to_string()))?;
+                    .queue(Print(erows[row as usize][0..len].to_string()))?;
             }
         }
         
