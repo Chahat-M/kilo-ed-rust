@@ -33,7 +33,7 @@ impl Screen {
     // Function to draw Tildes(~) on the screen
     // Alongwith welcome msg and rows
     // Can check changes.rs
-    pub fn draw_tildes(&mut self, erows : &[String], rowoff : u16) -> Result<()>{
+    pub fn draw_tildes(&mut self, erows: &[String], rowoff: u16, coloff: u16) -> Result<()>{
         for row in 0..self.height {
             const VERSION: &str = env!("CARGO_PKG_VERSION");
             let filerow = (row + rowoff) as usize;
@@ -73,10 +73,19 @@ impl Screen {
 
             // Printing the row
             else {
-                let len = erows[filerow].len().min(self.width as usize);
+                let mut len = erows[filerow].len();
+                if len < coloff as usize {
+                    continue; }
+                len -= coloff as usize;
+                let start = coloff as usize;
+                let end = start 
+                    + if len > self.width as usize {
+                            self.width as usize }
+                       else {
+                            len };
                 self.stdout
                     .queue(cursor::MoveTo(0,row))?
-                    .queue(Print(erows[filerow][0..len].to_string()))?;
+                    .queue(Print(erows[filerow][start..end].to_string()))?;
             }
         }
         
@@ -90,8 +99,8 @@ impl Screen {
     }
     
     // Function to move the cursor to desired position
-    pub fn move_to(&mut self, position : &CursorPos, rowoff : u16) -> Result<()> {
-        self.stdout.queue(cursor::MoveTo(position.x, position.y - rowoff))?;
+    pub fn move_to(&mut self, position: &CursorPos, rowoff: u16, coloff: u16) -> Result<()> {
+        self.stdout.queue(cursor::MoveTo(position.x - coloff, position.y - rowoff))?;
         Ok(())
     }
 

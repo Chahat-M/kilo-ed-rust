@@ -34,7 +34,8 @@ pub struct Editor {
     cursor : CursorPos,
     keymap : HashMap<char, EditorKey>,
     rows : Vec<String>,
-    rowoff : u16
+    rowoff : u16,
+    coloff : u16
 }
 
 impl Editor {
@@ -66,7 +67,8 @@ impl Editor {
             cursor : CursorPos::default(),  // Initially - at default position
             keymap,
             rows : if data.is_empty() { Vec::new() } else {Vec::from(data)}, // Useful during hiding welcome msg
-            rowoff : 0
+            rowoff : 0,
+            coloff : 0
         })
     }
     
@@ -138,22 +140,7 @@ impl Editor {
             }
         }
         else {
-/*            if let Ok(event) = crossterm::event::read() {
-                match event {
-                    Mouse(me) => match me.kind{
-                        MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
-                            for _ in 0..bounds.y {
-                                self.move_cursor( 
-                                    if me.kind == MouseEventKind::ScrollUp 
-                                        {EditorKey::ArrowUp}
-                                    else {EditorKey::ArrowDown} )
-                            }
-                        },
-                        _=> {}
-                    }
-                }
-            }
-*/            self.die("Unable to read from keyboard");
+            self.die("Unable to read from keyboard");
         }
         Ok(false)
     }
@@ -164,8 +151,8 @@ impl Editor {
         
         self.scroll();
         self.screen.clear()?;
-        self.screen.draw_tildes(&self.rows, self.rowoff)?;
-        self.screen.move_to(&self.cursor, self.rowoff)?;
+        self.screen.draw_tildes(&self.rows, self.rowoff, self.coloff)?;
+        self.screen.move_to(&self.cursor, self.rowoff, self.coloff)?;
         
         stdout.flush()
 
@@ -199,9 +186,18 @@ impl Editor {
     // Function for scrolling 
     fn scroll(&mut self) {
         let bounds = self.screen.bounds();
+
+        // Vertical scrolling
         if self.cursor.y < self.rowoff {
             self.rowoff = self.cursor.y; }
         if self.cursor.y >= self.rowoff + bounds.y {
             self.rowoff = self.cursor.y - bounds.y + 1; }
+        
+        // Horizontal scrolling
+        if self.cursor.x < self.coloff {
+            self.coloff = self.cursor.x; }
+        if self.cursor.x >= self.coloff + bounds.x {
+            self.coloff = self.cursor.x - bounds.x + 1; }
+
     }
 }
