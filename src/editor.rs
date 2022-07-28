@@ -173,7 +173,7 @@ impl Editor {
     fn move_cursor(&mut self, key : EditorKey) {
        use EditorKey::*;
 
-       let row_index = if self.cursor.y as usize >= self.rows.len() {
+       let row_index = if self.cursor.y as usize > self.rows.len() {
                             None }
                        else {
                             Some(self.cursor.y as usize) };
@@ -191,6 +191,13 @@ impl Editor {
             ArrowDown => if (self.cursor.y as usize) < self.rows.len() { 
                             self.cursor.y += 1; }
         }
+
+        let rowlen = if self.cursor.y as usize >= self.rows.len() {
+                        0 }
+                     else {
+                         self.rows[self.cursor.y as usize].len() };
+
+        self.cursor.x = self.cursor.x.min(rowlen as u16);
     }
 
     // Function for scrolling 
