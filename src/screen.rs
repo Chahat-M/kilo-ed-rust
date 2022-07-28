@@ -33,10 +33,11 @@ impl Screen {
     // Function to draw Tildes(~) on the screen
     // Alongwith welcome msg and rows
     // Can check changes.rs
-    pub fn draw_tildes(&mut self, erows : &[String]) -> Result<()>{
+    pub fn draw_tildes(&mut self, erows : &[String], rowoff : u16) -> Result<()>{
         for row in 0..self.height {
             const VERSION: &str = env!("CARGO_PKG_VERSION");
-            if row >= erows.len() as u16 {
+            let filerow = (row + rowoff) as usize;
+            if filerow >= erows.len() {
                 // Welcome msg along with tilde
                 if erows.len() == 0 && row == self.height/3 {
                     let mut welcome = format!("Kilo Editor -- version {VERSION}");
@@ -72,10 +73,10 @@ impl Screen {
 
             // Printing the row
             else {
-                let len = erows[row as usize].len().min(self.width as usize);
+                let len = erows[filerow].len().min(self.width as usize);
                 self.stdout
                     .queue(cursor::MoveTo(0,row))?
-                    .queue(Print(erows[row as usize][0..len].to_string()))?;
+                    .queue(Print(erows[filerow][0..len].to_string()))?;
             }
         }
         
@@ -89,11 +90,12 @@ impl Screen {
     }
     
     // Function to move the cursor to desired position
-    pub fn move_to(&mut self, position : &CursorPos) -> Result<()> {
-        self.stdout.queue(cursor::MoveTo(position.x, position.y))?;
+    pub fn move_to(&mut self, position : &CursorPos, rowoff : u16) -> Result<()> {
+        self.stdout.queue(cursor::MoveTo(position.x, position.y - rowoff))?;
         Ok(())
     }
 
+    // Function to know the height and width of the window
     pub fn bounds(&self)  -> CursorPos {
         CursorPos {
             x : self.width,

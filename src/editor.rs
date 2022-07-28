@@ -1,5 +1,7 @@
 use crossterm::event::{KeyCode, KeyModifiers, KeyEvent};
 
+//use crossterm::event::{Event::Mouse, MouseEventKind, MouseEvent};
+
 use std::io::{stdout, Write};
 
 use crossterm::{QueueableCommand, terminal, cursor, Result};
@@ -31,7 +33,8 @@ pub struct Editor {
     keyboard : Keyboard,
     cursor : CursorPos,
     keymap : HashMap<char, EditorKey>,
-    rows : Vec<String>
+    rows : Vec<String>,
+    rowoff : u16
 }
 
 impl Editor {
@@ -42,7 +45,6 @@ impl Editor {
             .split('\n')
             .map(|x| x.into()) 
             .collect::<Vec<String>>();
-        println!("{:?}",&lines);
         Editor::build(&lines)
     }
 
@@ -63,8 +65,8 @@ impl Editor {
             keyboard : Keyboard {},
             cursor : CursorPos::default(),  // Initially - at default position
             keymap,
-            rows : if data.is_empty() { Vec::new() } else {Vec::from(data)}
-            // Useful during hiding welcome msg
+            rows : if data.is_empty() { Vec::new() } else {Vec::from(data)}, // Useful during hiding welcome msg
+            rowoff : 0
         })
     }
     
@@ -132,10 +134,26 @@ impl Editor {
                     },
                     _ => {}
                 },
+
             }
         }
         else {
-            self.die("Unable to read from keyboard");
+/*            if let Ok(event) = crossterm::event::read() {
+                match event {
+                    Mouse(me) => match me.kind{
+                        MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
+                            for _ in 0..bounds.y {
+                                self.move_cursor( 
+                                    if me.kind == MouseEventKind::ScrollUp 
+                                        {EditorKey::ArrowUp}
+                                    else {EditorKey::ArrowDown} )
+                            }
+                        },
+                        _=> {}
+                    }
+                }
+            }
+*/            self.die("Unable to read from keyboard");
         }
         Ok(false)
     }
@@ -143,10 +161,11 @@ impl Editor {
     // Function to refresh the screen and move the cursor to top-left
     pub fn refresh_screen(&mut self) -> Result<()> {
         let mut stdout = stdout();
-
+        
+        self.scroll();
         self.screen.clear()?;
-        self.screen.draw_tildes(&self.rows)?;
-        self.screen.move_to(&self.cursor)?;
+        self.screen.draw_tildes(&self.rows, self.rowoff)?;
+        self.screen.move_to(&self.cursor, self.rowoff)?;
         
         stdout.flush()
 
@@ -172,7 +191,17 @@ impl Editor {
             ArrowRight => self.cursor.x += 1, 
             //{ self.cursor.x = self.cursor.x.saturating_add(1) },
             ArrowUp => { self.cursor.y = self.cursor.y.saturating_sub(1) },
-            ArrowDown =>  self.cursor.y += 1
+            ArrowDown => if (self.cursor.y as usize) < self.rows.len() { 
+                            self.cursor.y += 1; }
         }
+    }
+
+    // Function for scrolling 
+    fn scroll(&mut self) {
+        let bounds = self.screen.bounds();
+        if self.cursor.y < self.rowoff {
+            self.rowoff = self.cursor.y; }
+        if self.cursor.y >= self.rowoff + bounds.y {
+            self.rowoff = self.cursor.y - bounds.y + 1; }
     }
 }
