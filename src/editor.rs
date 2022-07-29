@@ -179,11 +179,23 @@ impl Editor {
                             Some(self.cursor.y as usize) };
 
         match key {
-            ArrowLeft => { self.cursor.x = self.cursor.x.saturating_sub(1) }, 
+            ArrowLeft => { 
+                if self.cursor.y > 0 { 
+                    self.cursor.y = self.cursor.y.saturating_sub(1);
+                    self.cursor.x = self.rows[self.cursor.y as usize].len() as u16
+                }
+                else {
+                    self.cursor.x = self.cursor.x.saturating_sub(1)
+                }
+            }, 
             ArrowRight => { 
                 if let Some(idx) = row_index {
                     if (self.cursor.x as usize) < self.rows[idx].len() {
-                        self.cursor.x += 1; };
+                        self.cursor.x += 1; }
+                    else if (self.cursor.x as usize) == self.rows[idx].len() {
+                        self.cursor.y += 1;
+                        self.cursor.x = 0
+                    };
                 }
             },
             //{ self.cursor.x = self.cursor.x.saturating_add(1) },
@@ -213,8 +225,8 @@ impl Editor {
         // Horizontal scrolling
         if self.cursor.x < self.coloff {
             self.coloff = self.cursor.x; }
+
         if self.cursor.x >= self.coloff + bounds.x {
             self.coloff = self.cursor.x - bounds.x + 1; }
-
     }
 }
