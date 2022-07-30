@@ -180,12 +180,12 @@ impl Editor {
 
         match key {
             ArrowLeft => { 
-                if self.cursor.y > 0 { 
+                if self.cursor.x != 0  {
+                    self.cursor.x = self.cursor.x.saturating_sub(1)
+                }
+                else if self.cursor.y > 0 { 
                     self.cursor.y = self.cursor.y.saturating_sub(1);
                     self.cursor.x = self.rows[self.cursor.y as usize].len() as u16
-                }
-                else {
-                    self.cursor.x = self.cursor.x.saturating_sub(1)
                 }
             }, 
             ArrowRight => { 
