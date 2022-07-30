@@ -277,7 +277,7 @@ pub fn refresh_screen(&mut self) -> Result<()> {
 
 We are now done with enabling scrolling down and up the screen.
 
-## Horizontal Scrolling
+## Horizontal Scrolling ( Step 71 - 75 )
 
 We'll perform similar steps as vertical scrolling. Define and initlize coloff in the same way as rowoff. Let's add the if statements to the `scroll` function, just by replacing `self.cursor.y` with `self.cursor.x`, `self.rowoff` with `self.coloff` and `bounds.y` with `bounds.x`.
 
@@ -334,7 +334,7 @@ pub fn move_to(&mut self, position: &CursorPos, rowoff: u16, coloff: u16) -> Res
 }
 ```
 
-## Limit scrolling to the right
+## Limit scrolling to the right ( Step 76 )
 
 Currently we can scroll vertically and horizontally through the screen. But we don't want the user to move the cursor way off to the right of a line, thus we would allow the user to be one past the last charachter of the line, and one past the last line of the file.
 
@@ -363,7 +363,7 @@ fn move_cursor(&mut self, key : EditorKey) {
 
 We check if the cursor is on an actual line, if it then we swt the `row_index` to the row the cursor is on. Also, we'll check if for that row the cursor is to the left of the end of the line, then only we increment it, and allow the cursor to move one past to the right of the end of line only.
 
-## Snap cursor to end of line
+## Snap cursor to end of line ( Step 77 )
 
 The user is able to move the cursor till the past of the line, but they can still go right way too off by moving the cursor to the end of a long line and then down to the next line which is shorter. We need to fix this!
 

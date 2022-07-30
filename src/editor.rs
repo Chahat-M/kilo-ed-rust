@@ -123,12 +123,19 @@ impl Editor {
                 // Cursor movement through arrow keys
                 KeyEvent { code, modifiers : _ } => match code {
                     KeyCode::Home => self.cursor.x = 0,
-                    KeyCode::End => self.cursor.x = bounds.x - 1,
+                    KeyCode::End => 
+                        if self.cursor.y < self.rows.len() as u16 {
+                        self.cursor.x = self.rows[self.cursor.y as usize].len() as u16; },
                     KeyCode::Up => self.move_cursor(EditorKey::ArrowUp),
                     KeyCode::Down => self.move_cursor(EditorKey::ArrowDown),
                     KeyCode::Left => self.move_cursor(EditorKey::ArrowLeft),
                     KeyCode::Right => self.move_cursor(EditorKey::ArrowRight),
                     KeyCode::PageUp | KeyCode::PageDown => {
+                        if code == KeyCode::PageUp {
+                            self.cursor.y = self.rowoff; }
+                        else {
+                            self.cursor.y = 
+                                (self.rowoff + bounds.y - 1).min(self.rows.len() as u16); }
                         for _ in 0..bounds.y {
                             self.move_cursor( if code == KeyCode::PageUp {EditorKey::ArrowUp}
                                              else {EditorKey::ArrowDown} )
@@ -188,7 +195,7 @@ impl Editor {
                     self.cursor.x = self.rows[self.cursor.y as usize].len() as u16
                 }
             }, 
-            ArrowRight => { 
+            ArrowRight => {
                 if let Some(idx) = row_index {
                     if (self.cursor.x as usize) < self.rows[idx].len() {
                         self.cursor.x += 1; }
