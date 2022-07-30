@@ -4,7 +4,7 @@ use crossterm::event::{KeyCode, KeyModifiers, KeyEvent};
 
 use std::io::{stdout, Write};
 
-use crossterm::{QueueableCommand, terminal, cursor, Result};
+use crossterm::{terminal, Result};
 
 use errno::errno;
 
@@ -35,25 +35,27 @@ pub struct Editor {
     keymap : HashMap<char, EditorKey>,
     rows : Vec<String>,
     rowoff : u16,
-    coloff : u16
+    coloff : u16,
+    filename: String
 }
 
 impl Editor {
     // Function to open and read first line if the filename is passed
-    pub fn open_file<P: AsRef<Path>>(filename: P) -> Result<Self> {
+    pub fn open_file<P: AsRef<Path> + ToString>(filename: P) -> Result<Self> {
+        let fn_filename = filename.to_string();
         let lines = std::fs::read_to_string(filename)
             .expect("Unable to open file")
             .split('\n')
             .map(|x| x.into()) 
             .collect::<Vec<String>>();
-        Editor::build(&lines)
+        Editor::build(&lines, fn_filename)
     }
 
     pub fn new() -> Result<Self> {
-        Editor::build(&[])
+        Editor::build(&[],"".to_string())
     }
 
-    fn build(data: &[String]) -> Result<Self> {
+    fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
         // Inserting cursor movements to HashMap
         let mut keymap = HashMap::new();
         keymap.insert('w', EditorKey::ArrowUp);
@@ -66,9 +68,11 @@ impl Editor {
             keyboard : Keyboard {},
             cursor : CursorPos::default(),  // Initially - at default position
             keymap,
-            rows : if data.is_empty() { Vec::new() } else {Vec::from(data)}, // Useful during hiding welcome msg
+            rows : if data.is_empty() { Vec::new() } 
+                else { Vec::from(data) }, // Useful during hiding welcome msg
             rowoff : 0,
-            coloff : 0
+            coloff : 0,
+            filename: filename.into()
         })
     }
     
@@ -78,8 +82,8 @@ impl Editor {
 
         loop{
             if self.refresh_screen().is_err(){
-                self.die("Unable to refresh screen");
-            }
+                    self.die("Unable to refresh screen");
+                }
           
             if self.process_keypress()? {
                 break;
@@ -159,8 +163,20 @@ impl Editor {
         self.scroll();
         self.screen.clear()?;
         self.screen.draw_tildes(&self.rows, self.rowoff, self.coloff)?;
-        self.screen.move_to(&self.cursor, self.rowoff, self.coloff)?;
         
+        let left_txt = format!("{:20} - {} lines", self.filename, self.rows.len());
+        let percent = (self.cursor.y as usize * 100)/self.rows.len(); 
+        let mut right_txt = format!("{},{}      {}%", self.cursor.y, self.cursor.x, percent);
+        if percent < 5 { 
+            right_txt = format!("{},{}      TOP", self.cursor.y, self.cursor.x);
+        }
+        else if percent > 95 {
+            right_txt = format!("{},{}      BOT", self.cursor.y, self.cursor.x);
+        }
+        self.screen.draw_status_bar(left_txt, right_txt)?;
+
+        self.screen.move_to(&self.cursor, self.rowoff, self.coloff)?;
+
         stdout.flush()
 
 //        stdout.queue(cursor::MoveTo(0,0))?.flush()
@@ -236,4 +252,6 @@ impl Editor {
         if self.cursor.x >= self.coloff + bounds.x {
             self.coloff = self.cursor.x - bounds.x + 1; }
     }
+
 }
+

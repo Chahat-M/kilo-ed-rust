@@ -1,8 +1,15 @@
 use std::io::{stdout, Write, Stdout};
 
-use crossterm::{QueueableCommand, style::Print, terminal, cursor, Result};
+use crossterm::{
+    QueueableCommand, 
+    style::{Print, Color, Colors, SetColors, ResetColor},
+    terminal,
+    cursor,
+    Result};
 
 use kilo_ed_rust::*;
+
+const KILO_TAB_STOP: usize = 8;
 
 pub struct Screen {
     height : u16,
@@ -15,7 +22,7 @@ impl Screen {
         let (columns, rows) = crossterm::terminal::size()?;
         Ok(Self {
             width : columns,
-            height : rows,
+            height : rows - 1, // So that we can have status bar
             stdout : stdout()
         })
     }
@@ -110,6 +117,37 @@ impl Screen {
             x : self.width,
             y : self.height
         }
+    }
+
+    pub fn draw_status_bar<T: Into<String>>(&mut self, left: T, right: T) -> Result<()> {
+        let left = left.into();
+        let right = right.into();
+
+        let left_width = left.len();
+        let right_width = right.len();
+        let screen_width = self.width as usize;
+
+        let lstatus = format!("{left:0$}",left_width.min(screen_width));
+        let mut rstatus = String::new();
+        let mut len = lstatus.len();
+        
+        while len < screen_width {
+            if screen_width - len == right_width {
+                rstatus.push_str(right.as_str());
+                break;
+            }
+            else {
+                rstatus.push(' ');
+                len += 1;
+            }
+        }
+        
+        self.stdout
+            .queue(cursor::MoveTo(0, self.height))?
+            .queue(SetColors(Colors::new(Color::White, Color::DarkMagenta)))?
+            .queue(Print(format!("{lstatus}{rstatus}")))?
+            .queue(ResetColor)?;
+        Ok(())
     }
 
 }
