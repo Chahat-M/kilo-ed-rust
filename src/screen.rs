@@ -7,9 +7,9 @@ use crossterm::{
     cursor,
     Result};
 
-use kilo_ed_rust::*;
+use crate::row::*;
 
-const KILO_TAB_STOP: usize = 8;
+use kilo_ed_rust::*;
 
 pub struct Screen {
     height : u16,
@@ -40,7 +40,7 @@ impl Screen {
     // Function to draw Tildes(~) on the screen
     // Alongwith welcome msg and rows
     // Can check changes.rs
-    pub fn draw_tildes(&mut self, erows: &[String], rowoff: u16, coloff: u16) -> Result<()>{
+    pub fn draw_tildes(&mut self, erows: &[Row], rowoff: u16, coloff: u16) -> Result<()>{
         for row in 0..self.height {
             const VERSION: &str = env!("CARGO_PKG_VERSION");
             let filerow = (row + rowoff) as usize;
@@ -80,7 +80,7 @@ impl Screen {
 
             // Printing the row
             else {
-                let mut len = erows[filerow].len();
+                let mut len = erows[filerow].render_length();
                 if len < coloff as usize {
                     continue; }
                 len -= coloff as usize;
@@ -92,7 +92,7 @@ impl Screen {
                             len };
                 self.stdout
                     .queue(cursor::MoveTo(0,row))?
-                    .queue(Print(erows[filerow][start..end].to_string()))?;
+                    .queue(Print(erows[filerow].render[start..end].to_string()))?;
             }
         }
         

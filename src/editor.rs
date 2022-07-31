@@ -10,6 +10,7 @@ use errno::errno;
 
 use crate::screen::*;
 use crate::keyboard::*;
+use crate::row::*;
 
 use kilo_ed_rust::*;
 
@@ -35,7 +36,7 @@ pub struct Editor {
     keyboard : Keyboard,
     cursor : CursorPos,
     keymap : HashMap<char, EditorKey>,
-    rows : Vec<String>,
+    rows : Vec<Row>,
     rowoff : u16,
     coloff : u16,
     filename: String,
@@ -73,7 +74,14 @@ impl Editor {
             cursor : CursorPos::default(),  // Initially - at default position
             keymap,
             rows : if data.is_empty() { Vec::new() } 
-                else { Vec::from(data) }, // Useful during hiding welcome msg
+                else { 
+                    let v = Vec::from(data);
+                    let mut rows = Vec::new();
+                    for lines in v {
+                        rows.push(Row::new(lines));
+                    }
+                    rows
+                },
             rowoff : 0,
             coloff : 0,
             filename: filename.into(),

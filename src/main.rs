@@ -2,6 +2,7 @@ use crossterm::Result;
 
 mod screen;
 mod keyboard;
+mod row;
 
 mod editor;
 use editor::*;
