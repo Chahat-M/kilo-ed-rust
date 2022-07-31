@@ -22,7 +22,7 @@ impl Screen {
         let (columns, rows) = crossterm::terminal::size()?;
         Ok(Self {
             width : columns,
-            height : rows - 1, // So that we can have status bar
+            height : rows - 2, // So that we can have status bar
             stdout : stdout()
         })
     }
@@ -119,7 +119,12 @@ impl Screen {
         }
     }
 
-    pub fn draw_status_bar<T: Into<String>>(&mut self, left: T, right: T) -> Result<()> {
+    pub fn draw_status_bar<T: Into<String>>(
+        &mut self, 
+        left: T, 
+        right: T, 
+        msg: String) -> Result<()> {
+
         let left = left.into();
         let right = right.into();
 
@@ -146,7 +151,10 @@ impl Screen {
             .queue(cursor::MoveTo(0, self.height))?
             .queue(SetColors(Colors::new(Color::White, Color::DarkMagenta)))?
             .queue(Print(format!("{lstatus}{rstatus}")))?
-            .queue(ResetColor)?;
+            .queue(ResetColor)?
+            .queue(cursor::MoveTo(0, self.height + 1))?
+            .queue(Print(format!("{msg}")))?;
+
         Ok(())
     }
 

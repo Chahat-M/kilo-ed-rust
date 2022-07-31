@@ -17,6 +17,8 @@ use std::collections::HashMap;
 
 use std::path::Path;
 
+use std::time::{Instant, Duration};
+
 // Copy -> to give EditorKey Copy semantics instead of Move semantics
 // Clone -> to create T from &T via a copy
 // Types that are Copy should have a trivial implementation of Clone, hence both used.
@@ -36,7 +38,9 @@ pub struct Editor {
     rows : Vec<String>,
     rowoff : u16,
     coloff : u16,
-    filename: String
+    filename: String,
+    status_time: Instant,
+    status_msg: String,
 }
 
 impl Editor {
@@ -52,7 +56,7 @@ impl Editor {
     }
 
     pub fn new() -> Result<Self> {
-        Editor::build(&[],"".to_string())
+        Editor::build(&[],"")
     }
 
     fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
@@ -72,7 +76,9 @@ impl Editor {
                 else { Vec::from(data) }, // Useful during hiding welcome msg
             rowoff : 0,
             coloff : 0,
-            filename: filename.into()
+            filename: filename.into(),
+            status_time: Instant::now(), // Current time
+            status_msg: String::from("Help: Press Ctrl-q to exit")
         })
     }
     
@@ -165,15 +171,14 @@ impl Editor {
         self.screen.draw_tildes(&self.rows, self.rowoff, self.coloff)?;
         
         let left_txt = format!("{:20} - {} lines", self.filename, self.rows.len());
-        let percent = (self.cursor.y as usize * 100)/self.rows.len(); 
-        let mut right_txt = format!("{},{}      {}%", self.cursor.y, self.cursor.x, percent);
-        if percent < 5 { 
-            right_txt = format!("{},{}      TOP", self.cursor.y, self.cursor.x);
+        let right_txt = self.calc_percent();
+        
+        if !self.status_msg.is_empty() && self.status_time.elapsed() > Duration::from_secs(5) {
+            self.status_msg.clear();
         }
-        else if percent > 95 {
-            right_txt = format!("{},{}      BOT", self.cursor.y, self.cursor.x);
-        }
-        self.screen.draw_status_bar(left_txt, right_txt)?;
+
+        self.screen.draw_status_bar(left_txt, right_txt, self.status_msg.to_string())?;
+        
 
         self.screen.move_to(&self.cursor, self.rowoff, self.coloff)?;
 
@@ -252,6 +257,25 @@ impl Editor {
         if self.cursor.x >= self.coloff + bounds.x {
             self.coloff = self.cursor.x - bounds.x + 1; }
     }
-
+    
+    fn calc_percent(&self) -> String {
+        let percent = if self.rows.len() > 0 {
+            (self.cursor.y as usize * 100)/self.rows.len() }
+            else {
+                0
+            };
+        
+        let mut right_txt = format!("{},{}      {}%", self.cursor.y, self.cursor.x, percent);
+ 
+        if self.rows.len() == 0 { 
+                right_txt = format!("{},{}        All", self.cursor.y, self.cursor.x); }
+        else if percent < 5 { 
+                right_txt = format!("{},{}      TOP", self.cursor.y, self.cursor.x); }
+        else if percent > 95 {
+            right_txt = format!("{},{}      BOT", self.cursor.y, self.cursor.x);
+        }
+        
+        right_txt
+    }
 }
 
