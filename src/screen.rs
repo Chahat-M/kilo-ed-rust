@@ -106,8 +106,14 @@ impl Screen {
     }
     
     // Function to move the cursor to desired position
-    pub fn move_to(&mut self, position: &CursorPos, rowoff: u16, coloff: u16) -> Result<()> {
-        self.stdout.queue(cursor::MoveTo(position.x - coloff, position.y - rowoff))?;
+    pub fn move_to(
+        &mut self,
+        position: &CursorPos,
+        render_x: u16,
+        rowoff: u16,
+        coloff: u16
+        ) -> Result<()> {
+        self.stdout.queue(cursor::MoveTo(render_x - coloff, position.y - rowoff))?;
         Ok(())
     }
 

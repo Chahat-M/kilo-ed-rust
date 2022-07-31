@@ -1,17 +1,17 @@
 const KILO_TAB_STOP: usize = 8;
 
 pub struct Row {
-    chars: String,
+    characters: String,
     pub render: String
 }
 
 impl Row {
 
-    pub fn new(chars: String) -> Self {
+    pub fn new(characters: String) -> Self {
         let mut render = String::new();
         let mut idx = 0;
 
-        for c in chars.chars(){
+        for c in characters.chars(){
             match c {
                 '\t' => {
                     render.push(' ');
@@ -28,7 +28,7 @@ impl Row {
             }
         }
 
-        Self{chars, render}
+        Self{characters, render}
 
     }
 
@@ -37,9 +37,20 @@ impl Row {
     }
 
     pub fn len(&self) -> usize {
-        self.chars.len()
+        self.characters.len()
     }
 
+    pub fn cursorx_to_renderx(&self, cx: u16) -> u16 {
+        let mut rx = 0;
+
+        for c in self.characters.chars().take(cx as usize) {
+            if c == '\t' {
+                rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+            }
+            rx += 1;
+        }
+        rx as u16
+    }
 }
 
 

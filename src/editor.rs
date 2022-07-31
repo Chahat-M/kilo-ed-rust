@@ -42,6 +42,7 @@ pub struct Editor {
     filename: String,
     status_time: Instant,
     status_msg: String,
+    render_x: u16
 }
 
 impl Editor {
@@ -84,9 +85,10 @@ impl Editor {
                 },
             rowoff : 0,
             coloff : 0,
-            filename: filename.into(),
-            status_time: Instant::now(), // Current time
-            status_msg: String::from("Help: Press Ctrl-q to exit")
+            filename : filename.into(),
+            status_time : Instant::now(), // Current time
+            status_msg : String::from("Help: Press Ctrl-q to exit"),
+            render_x : 0
         })
     }
     
@@ -188,7 +190,7 @@ impl Editor {
         self.screen.draw_status_bar(left_txt, right_txt, self.status_msg.to_string())?;
         
 
-        self.screen.move_to(&self.cursor, self.rowoff, self.coloff)?;
+        self.screen.move_to(&self.cursor, self.render_x, self.rowoff, self.coloff)?;
 
         stdout.flush()
 
@@ -251,6 +253,11 @@ impl Editor {
     // Function for scrolling 
     fn scroll(&mut self) {
         let bounds = self.screen.bounds();
+        
+        self.render_x = if self.cursor.y < self.rows.len() as u16 {
+            self.rows[self.cursor.y as usize].cursorx_to_renderx(self.cursor.x) }
+        else {
+            0 };
 
         // Vertical scrolling
         if self.cursor.y < self.rowoff {
@@ -259,11 +266,11 @@ impl Editor {
             self.rowoff = self.cursor.y - bounds.y + 1; }
         
         // Horizontal scrolling
-        if self.cursor.x < self.coloff {
-            self.coloff = self.cursor.x; }
+        if self.render_x < self.coloff {
+            self.coloff = self.render_x; }
 
-        if self.cursor.x >= self.coloff + bounds.x {
-            self.coloff = self.cursor.x - bounds.x + 1; }
+        if self.render_x >= self.coloff + bounds.x {
+            self.coloff = self.render_x - bounds.x + 1; }
     }
     
     fn calc_percent(&self) -> String {
