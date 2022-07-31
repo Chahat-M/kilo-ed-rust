@@ -2,7 +2,7 @@
 
 Let's allow the user to press the left arrow in a line to reach the end of the previous line.
 
-```
+```rust
 // editor.rs
 fn move_cursor(&mut self, key : EditorKey) {
 	/*...*/
@@ -25,7 +25,8 @@ fn move_cursor(&mut self, key : EditorKey) {
 
 Let's allow the user to press reach the beginning of the next line when right arrow is pressed at the end of a line.
 
-```
+```rust
+// editor.rs
 fn move_cursor(&mut self, key : EditorKey) {
 	/*...*/
 	match key {
@@ -49,7 +50,7 @@ fn move_cursor(&mut self, key : EditorKey) {
 
 Let's allow the user to reach at the top of the next page by pressing PageUp and at the end of the next page by pressing PageDown. If the page has less rows then the entire screen, then the cursor is placed at the end of the file. So, lets edit out `process_keypress` function.
 
-```
+```rust
 // editor.rs
 KeyCode::PageUp | KeyCode::PageDown => {
 	if code == KeyCode::PageUp {
@@ -68,7 +69,7 @@ KeyCode::PageUp | KeyCode::PageDown => {
 
 Earlier, we reached the end of the row of the screen on pressing `End`. But now, let's change `process_keypress` function to reach the end of the line of the file instead of the end of the screen.
 
-```
+```rust
 // editor.rs
 KeyCode::End =>
 	if self.cursor.y < self.rows.len() as u16 {
@@ -82,7 +83,7 @@ The cursor doesn't interact properly with tabs. We can even check this by creati
 
 To do so, create a `struct Row` that holds chars and render as strings. Implement the Row and define a new() function that takes the characters of the file as an argument and add these codes.
 
-```
+```rust
 // screen.rs
 
 const KILO_TAB_STOP: usize = 8;
@@ -129,7 +130,7 @@ Now, in the `new()` function we are initalising the render as an empty string fo
 
 Before we get into text editing, let's display the status bar as well. It will show the information such as filename, how many lines are in file and what position your cursor is currently on. So, let's first subtract 1 from the height of the screen, so that there is no line at the bottom, where we will display our status bar.
 
-```
+```rust
 // screen.rs
 pub fn new() -> Result<Self> {
 	let (columns, rows) = crossterm::terminal::size()?;
@@ -144,12 +145,12 @@ pub fn new() -> Result<Self> {
 
 To make the status bar stand out, display it with different colors. Here, we are displaying the background with DarkMagenta and forground with White. We use crossterm to set and reset colors.
 
-```
+```rust
 // screen.rs
 use crossterm::{style::{Print, Color, Colors, SetColors, ResetColor}}
 ```
 
-```
+```rust
 // screen.rs
     pub fn draw_status_bar(&mut self) -> Result<()> {
         self.stdout
@@ -162,16 +163,11 @@ use crossterm::{style::{Print, Color, Colors, SetColors, ResetColor}}
 
 ```
 
-We move to the last row to display the status bar and set our desired colors. ALos, we print spaces for the entire screen width so that we have the entire status bar, and then we reset the terminal to its default colors. To check if we got a DarkMagenta strip at the end of the screen, call this function under `refresh_screen` function.
-
-```
-// editor.rs
-
-```
+We move to the last row to display the status bar and set our desired colors. ALos, we print spaces for the entire screen width so that we have the entire status bar, and then we reset the terminal to its default colors.
 
 Now we intend to display some information like filename, total lines, current cursor positionand percentage of the screen we are currently at, in our status bar. First we'll write the code and then understand it.
 
-```
+```rust
 // screen.rs
 pub fn draw_status_bar<T: Into<String>>(&mut self, left: T, right: T) -> Result<()> {
 	let left = left.into();
@@ -213,7 +209,7 @@ Now, we'll define the left and right and call the function under `refresh_screen
 
 Create a new field filename under the `struct Editor` and initialize it.
 
-```
+```rust
 //editor.rs
 pub struct Editor {
 	/*...*/
@@ -222,7 +218,7 @@ pub struct Editor {
 
 ```
 
-```
+```rust
 //editor.rs
 fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
 	/*...*/
@@ -237,7 +233,7 @@ fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
 
 Since, the arguments of build function has changed we should change it in `new()` and `open_file()` as well.
 
-```
+```rust
 //editor.rs
 pub fn new() -> Result<Self> {
 	Editor::build(&[],"".to_string())
@@ -245,7 +241,7 @@ pub fn new() -> Result<Self> {
 
 ```
 
-```
+```rust
 //editor.rs
 pub fn open_file<P: AsRef<Path> + ToString>(filename: P) -> Result<Self> {
 	let fn_filename = filename.to_string();
@@ -263,7 +259,7 @@ Now we are ready to define left text `left_txt` and right text `right_txt` under
 
 In the left side we plan to display the filename and total no. of lines. The first 20 charachter of the filename will only be displayed, so files with very long names will be disaplyed till 20 charachters only. Also, we'll diaply total lines in the file after filename.
 
-```
+```rust
 // editor.rs
 let left_txt = format!("{:20} - {} lines", self.filename, self.rows.len());
 
@@ -273,7 +269,7 @@ In the right end we wish to display the current cursor position and percentage o
 
 So, let's calculate percent as the current row we are at multiplied by 100 and divided by total rows. But if no arguments are passed i.e no file to open, there will be 0 rows, and it will result in panic! Thus, we'll check that condition. If there are no rows, we'll display "All" instaed of the percent. Also, we set conditions to display "TOP" if we are under 5% and "BOT" if we are past 95%, instead of the percent value.
 
-```
+```rust
 // editor.rs
 fn calc_percent(&self) -> String {
 	let percent = if self.rows.len() > 0 {
@@ -299,7 +295,7 @@ fn calc_percent(&self) -> String {
 
 Now, to display the status bar call the function with `left_txt` and `right_txt` arguments.
 
-```
+```rust
 // editor.rs
 pub fn refresh_screen(&mut self) -> Result<()> {
 	/*...*/
@@ -318,13 +314,13 @@ Be careful, call `draw_status_bar()` only after drawing rows to the screen i.e a
 
 We intend to display some useful information like how to exit etc. just below the status bar. Firstly, create and initialize fields under `struct Editor` to store the message and time. To store time we will import some `Duration` and `Instant` struct. We'll understand their use further.
 
-```
+```rust
 // editor.rs
 use std::time::{Instant, Duration};
 
 ```
 
-```
+```rust
 // editor.rs
 pub struct Editor {
     /*...*/
@@ -333,7 +329,7 @@ pub struct Editor {
 }
 ```
 
-```
+```rust
 // editor.rs
 fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
 	/*...*/
@@ -347,7 +343,7 @@ fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
 
 For now we just provide the meassage to quit from the editor. To dispaly this message below the status bar, firstly subtract 2 from the total rows in the screen, so the file rows will not be displayed in the last two rows. We'll make changes to `draw_status_bar()` to append one line after the status bar is drawn and to display the message as recieved in the parameters.
 
-```
+```rust
 // screen.rs
     pub fn new() -> Result<Self> {
         let (columns, rows) = crossterm::terminal::size()?;
@@ -359,7 +355,7 @@ For now we just provide the meassage to quit from the editor. To dispaly this me
     }
 ```
 
-```
+```rust
 // screen.rs
 pub fn draw_status_bar<T: Into<String>>(&mut self, left: T, right: T, msg: String) -> Result<()> {
 	/*...*/
@@ -378,7 +374,7 @@ pub fn draw_status_bar<T: Into<String>>(&mut self, left: T, right: T, msg: Strin
 
 And now it's time for the final step before we move to text editing. We will the display the message below the status bar and clear it after 5 seconds of pressing any key. 
 
-```
+```rust
 // editor.rs
 pub fn refresh_screen(&mut self) -> Result<()> {
         if !self.status_msg.is_empty() && self.status_time.elapsed() > Duration::from_secs(5) {

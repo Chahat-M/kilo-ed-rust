@@ -4,7 +4,7 @@ We intend to read a single line of text from a file and display it. For this let
 
 We'll modify our existing function `draw_tildes` to  accept a vector of strings as an argument and make further changes to display a line.
 
-```
+```rust
 // editor.rs
 pub fn draw_tildes(&mut self, erows : &[String]) -> Result<()>{
 	for row in 0..self.height {
@@ -45,7 +45,7 @@ We add a new `else` section against the new `if` block to display the lines. We 
 
 To test this, let's change our editor.rs. We need to add a new `row : vec[String]` to define the row i.e the vector of strings in the `struct editor`. Also, we need to declare the string "Hello, World" under the `new()` function as shown - 
 
-```
+```rust
 // editor.rs
 pub fn new() -> Result<Self> {
 	// Inserting cursor movements to HashMap
@@ -66,7 +66,7 @@ We have displayed a single line of text, so now let's open a file and read its f
 
 We create a new function `open_file` to open and read from the file. Our intention is to print the first line itslef, hence we modify the function as -
 
-```
+```rust
 // editor.rs
 pub fn open_file<P: AsRef<Path>>(filename: P) -> Result<Self> {
 	let first_line = std::fs::read_to_string(filename)
@@ -83,12 +83,12 @@ Using `read_to_string` method we read the file passed as an input and raise an e
 
 Rename the new() function to build() that accepts a vector of string. We use vector of string because we intend to display multiple lines in future. Also, remove the hardcoded value to accept user value.
 
-```
+```rust
 // editor.rs
 fn build(data: &[String]) -> Result<Self>
 ```
 
-```
+```rust
 // editor.rs
         Ok(Self {
             screen : Screen::new()?,
@@ -102,7 +102,7 @@ Specifying `rows` this way prevents us from printing any unnecessary blanks as d
 
 Now, we need to re-write the new() function that simply calls `build()`.
 
-```
+```rust
 // editor.rs
 pub fn new() -> Result<Self> {
 	Editor::build("")
@@ -110,7 +110,7 @@ pub fn new() -> Result<Self> {
 ```
 Also, in `main()` we shall provide the condition to open the file if the input is provided else, to open our editor. If the length of the arguments passed are equal to or more than 2, indicates that the input file is provided. Hence we need to read the file.
 
-```
+```rust
 // main.rs
     let mut args = std::env::args();
 
@@ -125,7 +125,7 @@ We are done with reading a line from a file!! But, there is something wrong! We 
 
 We will print the welcome message only when the user starts the program with no arguments.
 
-```
+```rust
 // editor.rs
     pub fn draw_tildes(&mut self, erows : &[String]) -> Result<()>{
         /*...*/
@@ -138,7 +138,7 @@ We will print the welcome message only when the user starts the program with no 
 
 We have successfully read a single line from the file. Let's display all the contents of a file together. For this, we need to make some changes to our `open_file(filename)` function and to the `draw_tildes()` function as well.
 
-```
+```rust
 // editor.rs
 pub fn open_file<P: AsRef<Path>>(filename: P) -> Result<Self> {
         let lines = std::fs::read_to_string(filename)
@@ -151,7 +151,7 @@ pub fn open_file<P: AsRef<Path>>(filename: P) -> Result<Self> {
 ```
 Earlier we were just storing a single line, now we split the entire file content into separate lines, convert them into string using inbuilt `map()` function and store all the strings in a vector using `collect()`. Also, we rename `first_line` to `lines` for clear understanding.Since, build takes the reference to the vector as the parameter, we pass the reference to the vector lines. Let's update our `draw_tildes()` function accordingly.
 
-```
+```rust
 // editor.rs
 	/*...*/
 	    // Printing the row
@@ -169,7 +169,7 @@ Since we print each line, we print for every row character by character. But the
 
 Till now we can view the file, but if the file is goes beyond the screen height, we are unable to scroll through it. So, let's enable vertical scrolling. Create a variable `rowoff` to keep track of the row of the file the user is currently at and initialize it as 0, i.e scrolled at the top of the file by default.
 
-```
+```rust
 // editor.rs
 pub struct Editor {
     screen : Screen,
@@ -182,7 +182,7 @@ pub struct Editor {
 
 ```
 
-```
+```rust
 // editor.rs
 	/*...*/
         Ok(Self {
@@ -198,7 +198,7 @@ pub struct Editor {
 
 There are two possibilities for the cursor to be at - above the visible window and below the visible window. If the cursor is at above the dispalyed screen then let's scroll up to where the cursor is. Or if the cursor is below the displayed screen, we change the `rowoff` value. Let's perform these in a `scroll()` function.
 
-```
+```rust
 // editor.rs
 /*...*/
 fn scroll(&mut self) {
@@ -213,7 +213,7 @@ fn scroll(&mut self) {
 
 Now, let's display the correct range of lines of the file according to the value of `rowoff`.So we define the `filerow` variable to get the row of the file. 
 
-```
+```rust
 // screen.rs
 pub fn draw_tildes(&mut self, erows : &[String], rowoff : u16) -> Result<()>{
 	for row in 0..self.height {
@@ -225,7 +225,7 @@ pub fn draw_tildes(&mut self, erows : &[String], rowoff : u16) -> Result<()>{
 
 Call the `scroll()` function right before we refresh screen.
 
-```
+```rust
 // editor.rs
 pub fn refresh_screen(&mut self) -> Result<()> {
         let mut stdout = stdout();
@@ -241,7 +241,7 @@ pub fn refresh_screen(&mut self) -> Result<()> {
 
 Let's allow the cursor to move past the bottom of the screen but not past the bottom of the file.
 
-```
+```rust
 // editor.rs
 fn move_cursor(&mut self, key : EditorKey) {
 	use EditorKey::*;
@@ -256,7 +256,7 @@ fn move_cursor(&mut self, key : EditorKey) {
 
 We are now able to scroll down the screen, but when we scroll up, the cursor isn't being positioned properly. This is because `self.cursor.y` now refers to the cursor position within the text file instead of the cursor position on the screen. For this, let's update our `move_to` function's definition and make necessary changes.
 
-```
+```rust
 // screen.rs
 pub fn move_to(&mut self, position : &CursorPos, rowoff : u16) -> Result<()> {
 	self.stdout.queue(cursor::MoveTo(position.x, position.y - rowoff))?;
@@ -265,7 +265,7 @@ pub fn move_to(&mut self, position : &CursorPos, rowoff : u16) -> Result<()> {
 
 ```
 
-```
+```rust
 // editor.rs
 pub fn refresh_screen(&mut self) -> Result<()> {
 	/*...*/
@@ -281,7 +281,7 @@ We are now done with enabling scrolling down and up the screen.
 
 We'll perform similar steps as vertical scrolling. Define and initlize coloff in the same way as rowoff. Let's add the if statements to the `scroll` function, just by replacing `self.cursor.y` with `self.cursor.x`, `self.rowoff` with `self.coloff` and `bounds.y` with `bounds.x`.
 
-```
+```rust
 // editor.rs
 fn scroll(&mut self) {
         // Vertical scrolling
@@ -298,7 +298,7 @@ fn scroll(&mut self) {
 
 Let's change our `draw_tildes` as per the requirements.
 
-```
+```rust
 // screen.rs
  pub fn draw_tildes(&mut self, erows: &[String], rowoff: u16, coloff: u16) -> Result<()>{
 	/*...*/
@@ -326,7 +326,7 @@ Also, let's correct the way we call this function under `refresh_screen`, by pas
 
 But let's fix the cursor positioning as we did in vertical scrolling. 
 
-```
+```rust
 // screen.rs
 pub fn move_to(&mut self, position: &CursorPos, rowoff: u16, coloff: u16) -> Result<()> {
 	self.stdout.queue(cursor::MoveTo(position.x - coloff, position.y - rowoff))?;
@@ -338,7 +338,7 @@ pub fn move_to(&mut self, position: &CursorPos, rowoff: u16, coloff: u16) -> Res
 
 Currently we can scroll vertically and horizontally through the screen. But we don't want the user to move the cursor way off to the right of a line, thus we would allow the user to be one past the last charachter of the line, and one past the last line of the file.
 
-```
+```rust
 // editor.rs
 fn move_cursor(&mut self, key : EditorKey) {
 	use EditorKey::*;
@@ -367,7 +367,7 @@ We check if the cursor is on an actual line, if it then we swt the `row_index` t
 
 The user is able to move the cursor till the past of the line, but they can still go right way too off by moving the cursor to the end of a long line and then down to the next line which is shorter. We need to fix this!
 
-```
+```rust
 // editor.rs
 fn move_cursor(&mut self, key : EditorKey) {    
 	/*...*/
