@@ -1,7 +1,7 @@
 const KILO_TAB_STOP: usize = 8;
 
 pub struct Row {
-    characters: String,
+    pub characters: String,
     pub render: String
 }
 

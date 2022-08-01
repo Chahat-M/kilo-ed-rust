@@ -79,7 +79,7 @@ impl Editor {
             coloff : 0,
             filename : filename.into(),
             status_time : Instant::now(), // Current time
-            status_msg : String::from("Help: Press Ctrl-q to exit"),
+            status_msg : String::from("Help: Press Ctrl-q to exit | Ctrl-s to save"),
             render_x : 0
         })
     }
@@ -123,8 +123,14 @@ impl Editor {
                 // Inserting characters
                 KeyEvent {
                     code : KeyCode::Char(key),
-                    modifiers : _
+                    modifiers : KeyModifiers::NONE,
                 } => self.editor_insert_char(key),
+
+                // Saving file
+                KeyEvent {
+                    code : KeyCode::Char('s'),
+                    modifiers : KeyModifiers::CONTROL,
+                } => self.save(),
 
                 // Cursor movement through arrow keys
                 KeyEvent { code, modifiers : _ } => match code {
@@ -287,5 +293,37 @@ impl Editor {
         self.rows[self.cursor.y as usize].row_insert_char(self.cursor.x as usize, c);
         self.cursor.x += 1;
     }
-}
+
+    fn row_to_string(&self) -> String {
+        let mut data = String::new();
+
+        for row in &self.rows {
+            data.push_str(&row.characters);
+            data.push('\n');
+        }
+
+        data
+    }
+
+    fn save(&mut self) {
+        if self.filename.is_empty() {
+            return;
+        }
         
+        let buf = self.row_to_string();
+        let len = buf.as_bytes().len();
+        if std::fs::write(&self.filename, &buf).is_ok() {
+            self.set_status_msg(format!("{:?} bytes written to disk successfully", len));
+        }
+        else {
+            self.set_status_msg(format!("Can't save! I/O error: {}", errno()));
+        }
+
+    }
+    
+
+    fn set_status_msg(&mut self, message: String) {
+        self.status_time = Instant::now();
+        self.status_msg = message;
+    }
+}
