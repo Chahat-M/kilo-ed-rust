@@ -46,6 +46,238 @@ fn move_cursor(&mut self, key : EditorKey) {
 }
 ```
 
+## Rendering Tabs ( Step 80 - 84 )
+
+The cursor doesn't interact properly with tabs. We can even check this by creating a tabs.txt file that contains some text with tabs as well. We may notice that when there are multiple ttabs, the cursor skips it and moves to the next line, if any. To resolve this let's renders tab as multiple space characters.
+
+To do so, create a new file and add `struct Row` that holds chars and render as strings. Implement the Row and define a new() function that takes the characters of the file as an argument and add these codes.
+
+```rust
+// row.rs
+
+const KILO_TAB_STOP: usize = 8;
+
+pub Struct Row {
+    chars: String,
+    render: String,
+}   
+
+impl Row {
+	pub fn new(chars: String) -> Self {
+		let mut render = String::new();
+		let mut idx = 0;
+
+		for c in chars.chars() {
+			match c {
+				'\t' => {
+					render.push(' ');
+					idx += 1;
+					while idx % KILO_TAB_STOP != 0 {
+						render.push(' ');
+						idx += 1;
+					}   
+				},   
+				_ => {
+					render.push(c); 
+					idx += 1;
+				}
+			}   
+		}   
+		Self {chars, render}
+	}
+}
+
+```
+
+Firstly, set the tab stop as 8 by defining `const KILO_TAB_STOP: usize = 8`, so that we can easily use and play with it later.
+
+Now, in the `new()` function we are initalising the render as an empty string for now. We loop through the charachters of the string passed as an argument to `new()`. If the charachter is a tab `\t` we append one space through `render.push()` (because each tab must advance the cursor forward at least one column), and then append spaces until we get to a tab stop, which is a column that is divisible by 8 (KILO_TAB_STOP). This way we are rendering tabs into multiple space charachters. If the charachter is not a tab, we simply append it. Also, we increment the index `idx` everytime we push a charachter to render. Thus, we return the obtained `chars` string alongwith the `render` string that stores all charachters as in the original string along with multiple spaces for tabs.
+
+Also, let's define two more functions to return the length of each string which we'll be using further.
+
+```rust
+// row.rs
+   pub fn render_length(&self) -> usize {
+        self.render.len()
+    }
+
+    pub fn len(&self) -> usize {
+        self.chars.len()
+    }
+
+```
+
+Now let's update our `draw_tildes` accordingly, to now print the render string rather than the original input. Before that, import the `row.rs` crate so the screen crate can use it.
+
+```rust
+// screen.rs
+use crate::row::*;
+
+```
+
+Change the function's parameters to now accept a vector of Rows rather than a vector of string and make these changes.
+
+```rust
+// screen.rs
+    pub fn draw_tildes(&mut self, erows: &[Row], rowoff: u16, coloff: u16) -> Result<()>{
+        for row in 0..self.height {
+	     /*...*/
+            // Printing the row
+            else {
+                let mut len = erows[filerow].render_length();
+                
+		/*...*/
+		self.stdout
+                    .queue(cursor::MoveTo(0,row))?
+                    .queue(Print(erows[filerow].render[start..end].to_string()))?;
+            }
+        }
+
+```
+
+Here we replace `erows[filerow].len()` by `erows.[filerow].render_lenght()` as erows is now a vector of `struct Row`. Also, replace `erows[filerow][start..end]` to `erows[filerow].render[start..end]`. Since we have now changed `draw_tildes` definition, we will have to change it in other associated file as well.
+
+In editor.rs draw_tildes first parameter is &self.rows, so we need to change the way we define rows. Before that, import the row crate in same way as done before, by adding `use crate::row::*`
+
+Change the rows datatype from a vector of string to a vector of struct Row, thus changing it initialization as well.
+
+```rust
+// editor.rs
+pub struct Editor {
+	/*...*/
+	rows : Vec<Row>,
+	/*...*/
+}
+```
+
+```rust
+// editor.rs
+fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
+	/*...*/ 
+        Ok(Self {
+	    /*...*/
+            rows : if data.is_empty() { Vec::new() } 
+                else { 
+                    let v = Vec::from(data);
+                    let mut rows = Vec::new();
+                    for row in v {
+                        rows.push(Row::new(row));
+                    }
+                    rows
+                },
+	     /*...*/
+	}
+}
+```
+
+We are done with treating tabs as multiple space charachters. But this won't compile successfully, as we haven't told our main crate where to search for `use crate::row`. So, import `mod row` in the main crate, `main.rs`.
+
+## Tabs and Cursor ( Step 85 - 90 )
+
+Currently, the cursor assumes that each charachter takes only one column of space. So, to fix this we'll introduce a new variable `render_x` which will store the index in the render field. If there are no tabs on the current line, then `self.render_x` will be the same as `self.cursor.x`. If there are tabs, then it will be greater than `self.cursor.x` by however many extra spaces those tabs take up when rendered.
+
+```rust
+// editor.rs
+pub struct Editor {
+	/*...*/
+	render_x: u16
+}
+
+```
+
+```rust
+// editor.rs
+   fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
+   	/*...*/ 
+        Ok(Self {
+            /*...*/
+	    render_x : 0
+        })
+    }
+
+```
+
+For now we’ll just set `self.render_x` to be the same as `self.cursor.x` in `scroll()`. Then we’ll replace all instances of `self.cursor.x` with `self.render_x`, because scrolling should take into account the characters that are actually rendered to the screen, and the rendered position of the cursor.
+
+```rust
+// editor.rs
+fn scroll(&mut self) {
+        let bounds = self.screen.bounds();
+
+	self.render_x = self.cursor.x;
+
+        // Vertical scrolling
+        /*...*/
+
+	// Horizontal scrolling
+        if self.render_x < self.coloff {
+            self.coloff = self.render_x; }
+
+        if self.render_x >= self.coloff + bounds.x {
+            self.coloff = self.render_x - bounds.x + 1; }
+}
+
+```
+
+Also, now change the occurrence of `position.x` with `render_x` in `move_to()` where we set the cursor position.
+
+```rust
+// screen.rs
+   pub fn move_to(
+        &mut self,
+        position: &CursorPos,
+        render_x: u16,
+        rowoff: u16,
+        coloff: u16
+        ) -> Result<()> {
+        self.stdout.queue(cursor::MoveTo(render_x - coloff, position.y - rowoff))?;
+        Ok(())
+    }
+```
+
+Update the call to `move_to()` under `refresh_screen()`
+
+```rust
+// editor.rs
+ self.screen.move_to(&self.cursor, self.render_x, self.rowoff, self.coloff)?;
+
+```
+
+Now, let's calculate the value of `render_x` correctly. For this, let's define a new function that will convert the chars index i.e cursor.x to render index i.e render_x.
+
+```rust
+// row.rs
+    pub fn cursorx_to_renderx(&self, cx: u16) -> u16 {
+        let mut rx = 0;
+
+        for c in self.characters.chars().take(cx as usize) {
+            if c == '\t' {
+                rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+            }
+            rx += 1;
+        }
+        rx as u16
+    }
+```
+
+For each character, if it’s a tab we use `rx % KILO_TAB_STOP` to find out how many columns we are to the right of the last tab stop, and then subtract that from `KILO_TAB_STOP - 1` to find out how many columns we are to the left of the next tab stop. We add that amount to rx to get just to the left of the next tab stop, and then the unconditional rx++ statement gets us right on the next tab stop. 
+
+Now let's set the correct value of `render_x`.
+
+```rust
+// editor.rs
+fn scroll(&mut self) {
+        let bounds = self.screen.bounds();
+
+        self.render_x = if self.cursor.y < self.rows.len() as u16 {
+            self.rows[self.cursor.y as usize].cursorx_to_renderx(self.cursor.x) }
+        else {
+            0 };
+	/*...*/
+}
+
+```
+
 ## Scrolling using `PageUp` and `PageDown` ( Step 90 )
 
 Let's allow the user to reach at the top of the next page by pressing PageUp and at the end of the next page by pressing PageDown. If the page has less rows then the entire screen, then the cursor is placed at the end of the file. So, lets edit out `process_keypress` function.
@@ -76,55 +308,6 @@ KeyCode::End =>
         	self.cursor.x = self.rows[self.cursor.y as usize].len() as u16; },
 
 ```
-
-## Tabs and Cursor ( Step 80 - 89 )
-
-The cursor doesn't interact properly with tabs. We can even check this by creating a tabs.txt file that contains some text with tabs as well. We may notice that when there are multiple ttabs, the cursor skips it and moves to the next line, if any. To resolve this let's renders tab as multiple space characters.
-
-To do so, create a `struct Row` that holds chars and render as strings. Implement the Row and define a new() function that takes the characters of the file as an argument and add these codes.
-
-```rust
-// screen.rs
-
-const KILO_TAB_STOP: usize = 8;
-
-pub Struct Row {
-    chars: String,
-    render: String,
-}   
-
-impl Row {
-    pub fn new(chars: String) -> Self {
-        let mut render = String::new();
-        let mut index = 0;
-        
-        for c in chars.chars() {
-            match c {
-                '\t' => {
-                    render.push(' ');
-                    idx += 1;
-                    while idx % KILO_TAB_STOP != 0 {
-                        render.push(' ');
-                        idx += 1;
-                    }   
-                }   
-                _ => {
-                    render.push(c); 
-                    idx += 1;
-                }
-            }   
-        }
-        Self {chars, render}
-    }
-}
-
-```
-
-Firstly, set the tab stop as 8 by defining `const KILO_TAB_STOP: usize = 8`, so that we can easily use and play with it later.
-
-Now, in the `new()` function we are initalising the render as an empty string for now. We loop through the charachters of the string passed as an argument to `new()`. If the charachter is a tab `\t` we append one space through `render.push()` (because each tab must advance the cursor forward at least one column), and then append spaces until we get to a tab stop, which is a column that is divisible by 8 (KILO_TAB_STOP). Then we return chars and render.
-
-**To be continued...Doubt?**
 
 ## Status Bar ( Step 92 - 96 )
 
