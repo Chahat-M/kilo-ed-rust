@@ -14,8 +14,6 @@ use crate::row::*;
 
 use kilo_ed_rust::*;
 
-use std::collections::HashMap;
-
 use std::path::Path;
 
 use std::time::{Instant, Duration};
@@ -35,7 +33,6 @@ pub struct Editor {
     screen : Screen,
     keyboard : Keyboard,
     cursor : CursorPos,
-    keymap : HashMap<char, EditorKey>,
     rows : Vec<Row>,
     rowoff : u16,
     coloff : u16,
@@ -60,26 +57,21 @@ impl Editor {
     pub fn new() -> Result<Self> {
         Editor::build(&[],"")
     }
-
-    fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
-        // Inserting cursor movements to HashMap
-        let mut keymap = HashMap::new();
-        keymap.insert('w', EditorKey::ArrowUp);
-        keymap.insert('s', EditorKey::ArrowDown);
-        keymap.insert('a', EditorKey::ArrowLeft);
-        keymap.insert('d', EditorKey::ArrowRight);
     
+    fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
         Ok(Self {
             screen : Screen::new()?,
             keyboard : Keyboard {},
             cursor : CursorPos::default(),  // Initially - at default position
-            keymap,
             rows : if data.is_empty() { Vec::new() } 
                 else { 
                     let v = Vec::from(data);
                     let mut rows = Vec::new();
-                    for lines in v {
-                        rows.push(Row::new(lines));
+                    for row in v {
+                        rows.push(Row::new(row));
+                    }
+                    if rows.last().unwrap().len() == 0{
+                        rows.pop();
                     }
                     rows
                 },
@@ -128,17 +120,11 @@ impl Editor {
                     modifiers: KeyModifiers::CONTROL,
                 } => return Ok(true),
                 
-                // Cursor movement through 'wasd'
+                // Inserting characters
                 KeyEvent {
                     code : KeyCode::Char(key),
                     modifiers : _
-                } => match key {
-                    'w' | 'a' | 's' | 'd' =>{
-                        let temp = *self.keymap.get(&key).unwrap();
-                        self.move_cursor(temp);
-                    },
-                    _ => {}
-                },
+                } => self.editor_insert_char(key),
 
                 // Cursor movement through arrow keys
                 KeyEvent { code, modifiers : _ } => match code {
@@ -292,5 +278,14 @@ impl Editor {
         
         right_txt
     }
-}
+    
 
+    fn editor_insert_char(&mut self, c: char) {
+        if self.cursor.y as usize == self.rows.len() {
+            self.rows.push(Row::new(String::new()));
+        }
+        self.rows[self.cursor.y as usize].row_insert_char(self.cursor.x as usize, c);
+        self.cursor.x += 1;
+    }
+}
+        

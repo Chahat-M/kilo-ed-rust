@@ -8,6 +8,12 @@ pub struct Row {
 impl Row {
 
     pub fn new(characters: String) -> Self {
+        let render = Row::render_row(&characters);
+        Self{characters, render}
+    }
+
+    // Function to render tabs as multiple spaces and store it 
+    pub fn render_row(characters: &str) -> String {
         let mut render = String::new();
         let mut idx = 0;
 
@@ -27,9 +33,7 @@ impl Row {
                 }
             }
         }
-
-        Self{characters, render}
-
+        render
     }
 
     pub fn render_length(&self) -> usize {
@@ -50,6 +54,16 @@ impl Row {
             rx += 1;
         }
         rx as u16
+    }
+
+    // Function to insert a character at any position
+    pub fn row_insert_char(&mut self, at: usize, c: char) {
+        if at >= self.characters.len() {
+            self.characters.push(c); }
+        else {
+            self.characters.insert(at, c);
+        }
+        self.render = Row::render_row(&self.characters)
     }
 }
 
