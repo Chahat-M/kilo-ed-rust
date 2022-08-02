@@ -46,7 +46,7 @@ Now let's call this function for all the keys except the special keys (like Arro
                 // Inserting characters
                 KeyEvent {
                     code : KeyCode::Char(key),
-                    modifiers : _
+                    modifiers : KeyModifiers::NONE,
                 } => self.editor_insert_char(key),
 		/*...*/
 	   }
@@ -55,3 +55,111 @@ Now let's call this function for all the keys except the special keys (like Arro
 
 ```
 
+## Save the file
+
+Let's first store our vector of `Row` structs in a single string.
+
+```rust
+// editor.rs
+    fn row_to_string(&self) -> String {
+        let mut data = String::new();
+
+        for row in &self.rows {
+            data.push_str(&row.characters);
+            data.push('\n');
+        }
+
+        data
+    }
+
+```
+
+We create a new empty string, and push each row to the string followed by a new line character at the end of the each row. But this will not work until and unless we make characters public. So, in the `struct Row`, change characters to `pub characters: String`. This will allow us access characters even beyond the file it is defined in.
+
+Now we will write this string to the disk.
+
+```rust
+// editor.rs   
+   fn save(&mut self) {
+        let buf = self.row_to_string();
+        let _ = std::fs::write(&self.filename, &buf)
+    }
+
+```
+
+We call the `row_to_string()` function and store the string in a variable. Using `std::fs::write()`, we can save the content passed as the second parameter, with the filename passed as the first parameter.
+
+`std::fs::write()` will create the file if it doesn't exists and will entirely replace its content if it does.
+
+Now, let's map a key to this function. We will enable `Ctrl-s` to save it to the disk.
+
+```rust
+// editor.rs
+pub fn process_keypress(&mut self) -> Result<bool> {
+        let bounds = self.screen.bounds();
+        
+        if let Ok(c) = self.keyboard.read_key(){
+            match c {
+		/*...*/	
+                // Saving file
+                KeyEvent {
+                    code : KeyCode::Char('s'),
+                    modifiers : KeyModifiers::CONTROL,
+                } => self.save(),
+		/*...*/
+	    }
+	}
+}
+
+```
+
+Now, we'll be able to save the file to disk. Open a file, make changes, and press Ctrl-s to save followed by ctrl-q to exit. Reopen the file, and we will be able to see the saved changes.
+
+Now, we will add some status message below the status bar, to let the user know if the save was successful or else display the error if it failed. Create a function to set the status message.
+
+```rust
+// editor.rs
+    fn set_status_msg(&mut self, message: String) {
+        self.status_time = Instant::now();
+        self.status_msg = message;
+    }
+
+```
+
+We set the `status_time` and `status_msg`. Now let's set a successful message if the file was properly written to the disk. Also, we'll check if the filename exists or not, if it doesn't then we'll just return and do nothing.
+
+```rust
+// editor.rs
+    fn save(&mut self) {
+        if self.filename.is_empty() {
+            return;
+        }
+        
+        let buf = self.row_to_string();
+        let len = buf.as_bytes().len();
+        if std::fs::write(&self.filename, &buf).is_ok() {
+            self.set_status_msg(format!("{:?} bytes written to disk successfully", len));
+        }
+        else {
+            self.set_status_msg(format!("Can't save! I/O error: {}", errno()));
+        }
+
+    }
+
+```
+
+We set the `len` as the total number of bytes written to the disk. And using `errno()` we'll display the associated error message. 
+
+Also, now we should edit the status messgae displayed at the beginning to have information for saving the file along with quitting the application.
+
+```rust
+// editor.rs
+    fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
+        Ok(Self {
+    		/*...*/
+    		status_msg : String::from("Help: Press Ctrl-q to exit | Ctrl-s to save"),
+        	/*...*/
+	})
+    }
+    
+```
