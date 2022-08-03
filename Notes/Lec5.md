@@ -163,3 +163,69 @@ Also, now we should edit the status messgae displayed at the beginning to have i
     }
     
 ```
+
+## Dirty Flag
+
+Let's now let the user know if the file is modified or not, so they can save the changes before quitting. For this, let's create a variable `dirty` which will update each time we make some changes to the file. Let's define and intialise it first.
+
+```rust
+// editor.rs
+pub struct Editor {
+	/*...*/
+	dirty: usize  
+}
+
+```
+
+```rust
+// editor.rs
+fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
+        Ok(Self {
+	/*...*/
+	dirty: 0
+	}
+
+```
+
+Now, let's update its value each time we make some change to the text.
+
+```rust
+// editor.rs
+    fn editor_insert_char(&mut self, c: char) {
+        if self.cursor.y as usize == self.rows.len() {
+            self.append_row(String::new());
+        }       
+        self.rows[self.cursor.y as usize].row_insert_char(self.cursor.x as usize, c);
+        self.cursor.x += 1;
+        self.dirty += 1;
+    }
+
+```
+
+```rust
+// editor.rs
+    fn append_row(&mut self, s: String){    
+        self.rows.push(Row::new(s));
+        self.dirty += 1;
+    }
+
+```
+
+Now let the status bar display if the text is modified or not. If the value of dirty exceeds the initialized value, then the file has been changed otherwise not. We'll display this status after the filename. So, let's update the `left_text` which store the information to be stored at the left end of the status bar.
+
+```rust
+// editor.rs
+pub fn refresh_screen(&mut self) -> Result<()> {
+	/*...*/
+	let left_txt = format!("{:20} {} - {} lines", 
+                               if self.filename.is_empty(){"[No Name]"} else{&self.filename},
+                                if self.dirty > 0{"(modified)"} else{""},
+                                self.rows.len());
+	/*...*/
+}
+
+```
+
+We'll now be able to see "(modified)" in the status bar as soon as some change is made to the file.
+
+

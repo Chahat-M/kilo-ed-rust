@@ -39,7 +39,8 @@ pub struct Editor {
     filename: String,
     status_time: Instant,
     status_msg: String,
-    render_x: u16
+    render_x: u16,
+    dirty: usize  
 }
 
 impl Editor {
@@ -80,7 +81,8 @@ impl Editor {
             filename : filename.into(),
             status_time : Instant::now(), // Current time
             status_msg : String::from("Help: Press Ctrl-q to exit | Ctrl-s to save"),
-            render_x : 0
+            render_x : 0,
+            dirty: 0
         })
     }
     
@@ -172,7 +174,11 @@ impl Editor {
         self.screen.clear()?;
         self.screen.draw_tildes(&self.rows, self.rowoff, self.coloff)?;
         
-        let left_txt = format!("{:20} - {} lines", self.filename, self.rows.len());
+        let left_txt = format!("{:20} {} - {} lines", 
+                               if self.filename.is_empty(){"[No Name]"} else{&self.filename},
+                                if self.dirty > 0{"(modified)"} else{""},
+                                self.rows.len());
+
         let right_txt = self.calc_percent();
         
         if !self.status_msg.is_empty() && self.status_time.elapsed() > Duration::from_secs(5) {
@@ -288,16 +294,23 @@ impl Editor {
 
     fn editor_insert_char(&mut self, c: char) {
         if self.cursor.y as usize == self.rows.len() {
-            self.rows.push(Row::new(String::new()));
+            self.append_row(String::new());
         }
         self.rows[self.cursor.y as usize].row_insert_char(self.cursor.x as usize, c);
         self.cursor.x += 1;
+        self.dirty += 1;
+    }
+
+    fn append_row(&mut self, s: String){
+        self.rows.push(Row::new(s));
+        self.dirty += 1;
     }
 
     fn row_to_string(&self) -> String {
         let mut data = String::new();
 
         for row in &self.rows {
+            println!("{:?}", &row.characters);
             data.push_str(&row.characters);
             data.push('\n');
         }
@@ -309,8 +322,8 @@ impl Editor {
         if self.filename.is_empty() {
             return;
         }
-        
-        let buf = self.row_to_string();
+       
+        let buf = self.row_to_string(); 
         let len = buf.as_bytes().len();
         if std::fs::write(&self.filename, &buf).is_ok() {
             self.set_status_msg(format!("{:?} bytes written to disk successfully", len));

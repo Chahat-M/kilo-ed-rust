@@ -63,7 +63,7 @@ impl Row {
         else {
             self.characters.insert(at, c);
         }
-        self.render = Row::render_row(&self.characters)
+        self.render = Row::render_row(&self.characters);
     }
 }
 

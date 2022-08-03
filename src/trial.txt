@@ -1,5 +1,5 @@
 Hey!! I'm Chahat Mittal.
 Learning Rust 
 Currently a beginner
-i am here!!
-do you know me?
+i am here
+do you know me
