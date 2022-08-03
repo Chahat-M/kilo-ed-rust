@@ -18,6 +18,8 @@ use std::path::Path;
 
 use std::time::{Instant, Duration};
 
+const KILO_QUIT_TIMES: usize = 3;
+
 // Copy -> to give EditorKey Copy semantics instead of Move semantics
 // Clone -> to create T from &T via a copy
 // Types that are Copy should have a trivial implementation of Clone, hence both used.
@@ -40,7 +42,8 @@ pub struct Editor {
     status_time: Instant,
     status_msg: String,
     render_x: u16,
-    dirty: usize  
+    dirty: usize,
+    quit_times: usize
 }
 
 impl Editor {
@@ -82,7 +85,8 @@ impl Editor {
             status_time : Instant::now(), // Current time
             status_msg : String::from("Help: Press Ctrl-q to exit | Ctrl-s to save"),
             render_x : 0,
-            dirty: 0
+            dirty: 0, 
+            quit_times: KILO_QUIT_TIMES
         })
     }
     
@@ -120,7 +124,17 @@ impl Editor {
                 KeyEvent {
                     code: KeyCode::Char('q'),       
                     modifiers: KeyModifiers::CONTROL,
-                } => return Ok(true), 
+                } => {
+                    if self.dirty > 0 && self.quit_times > 0 {
+                        self.set_status_msg(format!("Warning!! File has unsaved changes. \
+                        Press Ctrl-q {} more times to quit", self.quit_times)); 
+                        self.quit_times -= 1;
+                        return Ok(false);
+                    } 
+                    else {
+                        return Ok(true);
+                    }
+                },
                 
                 // Inserting characters
                 KeyEvent {
@@ -163,6 +177,7 @@ impl Editor {
         else {
             self.die("Unable to read from keyboard");
         }
+        self.quit_times = KILO_QUIT_TIMES;
         Ok(false)
     }
 

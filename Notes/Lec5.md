@@ -249,3 +249,43 @@ We'll now be able to see "(modified)" in the status bar as soon as some change i
 
 ```
 
+## Quit Confirmation
+
+Since we have make the user aware if the file is being modified or not, let's also warn if the user tries to quit without saving. So, to exit without saving, we ask user to press Ctrl-q three times. 
+
+We first define `quit_times` and initialise it to three and then check if there are any changes made and also if Ctrl-q is pressed. We'll then warn the user to press it three more times, and decreament `quit_times` value each time.
+
+```rust
+// editor.rs
+pub fn process_keypress(&mut self) -> Result<bool> {
+	let bounds = self.screen.bounds();
+
+	if let Ok(c) = self.keyboard.read_key(){
+		match c {
+			// Ctrl-q to exit
+			KeyEvent {                          
+				code: KeyCode::Char('q'),        
+	      			modifiers: KeyModifiers::CONTROL,
+			} => {
+				if self.dirty > 0 && self.quit_times > 0 {
+					self.set_status_msg(format!("Warning!! File has unsaved changes. \
+								Press Ctrl-q {} more times to quit", self.quit_times));
+					self.quit_times -= 1;
+					return Ok(false);
+				} 
+				else {
+					return Ok(true);
+				}
+			},
+			/*...*/
+		}
+	}
+	else {
+		self.die("Unable to read from keyboard");
+	}
+	self.quit_times = KILO_QUIT_TIMES;
+	Ok(false)
+}
+
+```
+
