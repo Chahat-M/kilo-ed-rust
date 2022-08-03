@@ -226,6 +226,26 @@ pub fn refresh_screen(&mut self) -> Result<()> {
 
 ```
 
-We'll now be able to see "(modified)" in the status bar as soon as some change is made to the file.
+We'll now be able to see "(modified)" in the status bar as soon as some change is made to the file. But we can observe that the "(modified)" doesn't appear even after we save it. This is because we have not reset its value while saving. So, let's do that!
 
+```rust
+// editor.rs
+    fn save(&mut self) {
+        if self.filename.is_empty() {
+            return;
+        }
+       
+        let buf = self.row_to_string();
+        let len = buf.as_bytes().len();
+        if std::fs::write(&self.filename, &buf).is_ok() {
+            self.dirty = 0;
+            self.set_status_msg(format!("{:?} bytes written to disk successfully", len));
+        }
+        else {
+            self.set_status_msg(format!("Can't save! I/O error: {}", errno()));
+        }
+
+    }
+
+```
 

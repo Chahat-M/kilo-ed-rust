@@ -113,14 +113,14 @@ impl Editor {
     // Can check changes.rs for own definition
     pub fn process_keypress(&mut self) -> Result<bool> {
         let bounds = self.screen.bounds();
-        
+
         if let Ok(c) = self.keyboard.read_key(){
             match c {
                 // Ctrl-q to exit
                 KeyEvent {
                     code: KeyCode::Char('q'),       
                     modifiers: KeyModifiers::CONTROL,
-                } => return Ok(true),
+                } => return Ok(true), 
                 
                 // Inserting characters
                 KeyEvent {
@@ -326,6 +326,7 @@ impl Editor {
         let buf = self.row_to_string(); 
         let len = buf.as_bytes().len();
         if std::fs::write(&self.filename, &buf).is_ok() {
+            self.dirty = 0;
             self.set_status_msg(format!("{:?} bytes written to disk successfully", len));
         }
         else {
