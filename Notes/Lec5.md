@@ -289,3 +289,82 @@ pub fn process_keypress(&mut self) -> Result<bool> {
 
 ```
 
+## Simple Backspacing
+
+Let's implement backspace, Ctrl-h and Delete to remove characters from the screen. First we'll implement `del_char()` to return true if the character is deleted at a given position from the row and the row is updated as well, or else false.
+```rust
+// row.rs
+    pub fn del_char(&mut self, at: usize) -> bool {
+        if at >= self.characters.len() {
+            false
+        }
+        else {
+            self.characters.remove(at);
+            self.render = Row::render_row(&self.characters);
+            true
+        }
+    }
+
+```
+
+Now, let's delete the character that is to the left of the screen.
+
+```rust
+// editor.rs
+    fn editor_del_char(&mut self) {
+        if self.cursor.y as usize >= self.rows.len() {
+            return;
+        }
+        
+        if self.cursor.x > 0
+            && self.rows[self.cursor.y as usize].del_char(self.cursor.x as usize - 1) {
+                self.cursor.x -= 1;
+                self.dirty += 1;
+        }
+        
+    }
+
+```
+
+If the cursor position is beyond the rows in the file, we do nothing. We call our `del_char()` on the row we are at, for 1 left the position the cursor is currently at. We also shifts the cursor to the left and update `dirty` by 1, as there is one change made to file. Now, let's map Backspace and Ctrl-h keys to delete the character that is left to the cursor.
+
+```rust
+    pub fn process_keypress(&mut self) -> Result<bool> {
+        let bounds = self.screen.bounds();
+
+        if let Ok(c) = self.keyboard.read_key(){
+            match c {
+		/*...*/
+
+	        KeyEvent {
+                    code : KeyCode::Backspace,
+                    modifiers : NONE
+                } => self.editor_del_char(),
+     
+                KeyEvent {
+                    code : KeyCode::Char('h'),
+                    modifiers : CONTROL
+                } => self.editor_del_char(),
+		/*...*/
+
+```
+
+Also, let `delete` key remove the character under the cursor, which can be treated as pressing a right arrow followed by backspace.
+
+```rust
+    pub fn process_keypress(&mut self) -> Result<bool> {
+        let bounds = self.screen.bounds();
+
+        if let Ok(c) = self.keyboard.read_key(){
+            match c {
+                /*...*/
+		KeyEvent {
+                    code : KeyCode::Delete,
+                    modifiers : NONE
+                } => {
+                        // Deletes the character under the cursor 
+                        self.move_cursor(EditorKey::ArrowRight);
+                        self.editor_del_char();
+                    },
+
+```

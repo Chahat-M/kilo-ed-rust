@@ -148,6 +148,25 @@ impl Editor {
                     modifiers : KeyModifiers::CONTROL,
                 } => self.save(),
 
+                KeyEvent {
+                    code : KeyCode::Backspace,
+                    modifiers : NONE
+                } => self.editor_del_char(),
+
+                KeyEvent {
+                    code : KeyCode::Char('h'),
+                    modifiers : CONTROL
+                } => self.editor_del_char(),
+
+                KeyEvent {
+                    code : KeyCode::Delete,
+                    modifiers : NONE
+                } => {
+                        // Deletes the character under the cursor 
+                        self.move_cursor(EditorKey::ArrowRight);
+                        self.editor_del_char();
+                    },
+
                 // Cursor movement through arrow keys
                 KeyEvent { code, modifiers : _ } => match code {
                     KeyCode::Home => self.cursor.x = 0,
@@ -355,4 +374,19 @@ impl Editor {
         self.status_time = Instant::now();
         self.status_msg = message;
     }
+
+    // Function to delete character left of the cursor from the screen
+    fn editor_del_char(&mut self) {
+        if self.cursor.y as usize == self.rows.len() {
+            return;
+        }
+
+        if self.cursor.x > 0 
+            && self.rows[self.cursor.y as usize].del_char(self.cursor.x as usize - 1) {
+                self.cursor.x -= 1;
+                self.dirty += 1;
+        }
+        
+    }
+
 }

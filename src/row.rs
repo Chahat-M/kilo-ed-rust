@@ -65,6 +65,19 @@ impl Row {
         }
         self.render = Row::render_row(&self.characters);
     }
+
+    // Returns true if a character is deleted else false
+    pub fn del_char(&mut self, at: usize) -> bool {
+        if at >= self.characters.len() {
+            false
+        }
+        else {
+            self.characters.remove(at);
+            self.render = Row::render_row(&self.characters);
+            true
+        }
+    }
+
 }
 
 
