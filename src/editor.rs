@@ -139,7 +139,7 @@ impl Editor {
                 // Inserting characters
                 KeyEvent {
                     code : KeyCode::Char(key),
-                    modifiers : KeyModifiers::NONE,
+                    modifiers : KeyModifiers::NONE | KeyModifiers::SHIFT 
                 } => self.editor_insert_char(key),
 
                 // Saving file
