@@ -78,6 +78,10 @@ impl Row {
         }
     }
 
+    pub fn append_string(&mut self, s: &str) {
+        self.characters.push_str(s);
+        self.render = Row::render_row(&self.characters);
+    }
 }
 
 

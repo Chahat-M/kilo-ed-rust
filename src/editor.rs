@@ -150,17 +150,17 @@ impl Editor {
 
                 KeyEvent {
                     code : KeyCode::Backspace,
-                    modifiers : NONE
+                    modifiers : KeyModifiers::NONE
                 } => self.editor_del_char(),
 
                 KeyEvent {
                     code : KeyCode::Char('h'),
-                    modifiers : CONTROL
+                    modifiers : KeyModifiers::CONTROL
                 } => self.editor_del_char(),
 
                 KeyEvent {
                     code : KeyCode::Delete,
-                    modifiers : NONE
+                    modifiers : KeyModifiers::NONE
                 } => {
                         // Deletes the character under the cursor 
                         self.move_cursor(EditorKey::ArrowRight);
@@ -381,12 +381,33 @@ impl Editor {
             return;
         }
 
+        if self.cursor.x as usize == 0 && self.cursor.y == 0 {
+            return;
+        }
+
         if self.cursor.x > 0 
             && self.rows[self.cursor.y as usize].del_char(self.cursor.x as usize - 1) {
                 self.cursor.x -= 1;
                 self.dirty += 1;
+        } else {
+            self.cursor.x = self.rows[self.cursor.y as usize - 1].len() as u16;
+            if let Some(row) = self.del_row(self.cursor.y as usize) {
+                self.rows[self.cursor.y as usize - 1].append_string(&row);
+                self.cursor.y -= 1;
+                self.dirty += 1;
+            }
         }
         
     }
+    
+    // Function to delete a row and return its contents
+    fn del_row(&mut self, at: usize) -> Option<String>{
+        if at >= self.rows.len() {
+            None
+        } else {
+            self.dirty += 1;   
+            Some(self.rows.remove(at).characters)
+        }
 
+    }
 }

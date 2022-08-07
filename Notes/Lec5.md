@@ -55,7 +55,7 @@ Now let's call this function for all the keys except the special keys (like Arro
 
 ```
 
-## Save the file
+## Save the file ( Step 105 - 110)
 
 Let's first store our vector of `Row` structs in a single string.
 
@@ -164,7 +164,7 @@ Also, now we should edit the status messgae displayed at the beginning to have i
     
 ```
 
-## Dirty Flag
+## Dirty Flag ( Step 111 - 114 )
 
 Let's now let the user know if the file is modified or not, so they can save the changes before quitting. For this, let's create a variable `dirty` which will update each time we make some changes to the file. Let's define and intialise it first.
 
@@ -249,7 +249,7 @@ We'll now be able to see "(modified)" in the status bar as soon as some change i
 
 ```
 
-## Quit Confirmation
+## Quit Confirmation ( Step 115 )
 
 Since we have make the user aware if the file is being modified or not, let's also warn if the user tries to quit without saving. So, to exit without saving, we ask user to press Ctrl-q three times. 
 
@@ -289,7 +289,7 @@ pub fn process_keypress(&mut self) -> Result<bool> {
 
 ```
 
-## Simple Backspacing
+## Simple Backspacing ( Step 116 - 118 )
 
 Let's implement backspace, Ctrl-h and Delete to remove characters from the screen. First we'll implement `del_char()` to return true if the character is deleted at a given position from the row and the row is updated as well, or else false.
 ```rust
@@ -368,3 +368,62 @@ Also, let `delete` key remove the character under the cursor, which can be treat
                     },
 
 ```
+
+## Backspacing at the start of the line ( Step 119 - 121 )
+
+We can observe that we can use `Backspace` and `Delete` to remove the characters but if the cursor is at the beginning or end of the line, we don't get the desired result. So, let's implement it as well. We will create a function to delete the row the cursor is currently at and return the contents of the row, so that we can later append it to the previous row.
+
+```rust
+// editor.rs
+    fn del_row(&mut self, at: usize) -> Option<String>{
+        if at >= self.rows.len() {
+            None
+        } else {
+            self.dirty += 1;   
+            Some(self.rows.remove(at).characters)
+        }
+
+    }
+```
+Here we are deleting a row from the file using `remove` and return its contents. Now, let's have a function to append the string to a row. 
+
+```rust
+// row.rs
+    pub fn append_string(&mut self, s: &str) {    
+        self.characters.push_str(s);
+        self.render = Row::render_row(&self.characters);
+    }
+
+```
+
+We just append the string and update the `render` accordingly. And, now let's use these functions. We will modify the `editor_del_char()`, as when we are at the beginning of the row, pressing `Backspace` should remove the spaces between the current and previous line i.e `\n`, and thus we update `editor_del_char()`.
+
+```rust
+// editor.rs
+    fn editor_del_char(&mut self) {
+        if self.cursor.y as usize == self.rows.len() {
+            return;
+        }
+                    
+        if self.cursor.x as usize == 0 && self.cursor.y == 0 {
+            return;
+        }
+                        
+        if self.cursor.x > 0 
+            && self.rows[self.cursor.y as usize].del_char(self.cursor.x as usize - 1) {
+                self.cursor.x -= 1;
+                self.dirty += 1;
+        } else {
+            self.cursor.x = self.rows[self.cursor.y as usize - 1].len() as u16;
+            if let Some(row) = self.del_row(self.cursor.y as usize) {
+                self.rows[self.cursor.y as usize - 1].append_string(&row);
+                self.cursor.y -= 1;
+                self.dirty += 1;
+            }
+        }
+        
+    }
+
+```
+
+If we are at the end or beginning of the file, there is nothing to do. But if we are at the beginning of a row, then we call `del_row()` that will not only delete the row but return its contents which we then add to the previous row using `append_string()`. Since, the cursor was at the beginning of the row we wish to delete, we decreament the cursor position to be at the previous line. Also, as deleting is also a modification in the file, we update the value of `dirty`.
