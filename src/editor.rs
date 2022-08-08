@@ -105,9 +105,7 @@ impl Editor {
         }
 
         // To resolve error of Step 24
-        let cl = if let Ok(cl) = self.screen.clear(){
-            cl
-        };
+        let _ = self.screen.clear();
 
         terminal::disable_raw_mode() // Step 6 - restoring the terminal mode after quitting
     }

@@ -100,11 +100,6 @@ impl Screen {
 //       Ok(())
     }
 
-    // Function to know the cursor position
-    pub fn cursor_position(&self) -> Result<(u16, u16)> {
-        cursor::position()
-    }
-    
     // Function to move the cursor to desired position
     pub fn move_to(
         &mut self,
