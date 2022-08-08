@@ -363,7 +363,12 @@ impl Editor {
 
     fn save(&mut self) {
         if self.filename.is_empty() {
-            return;
+            if let Some(filename) = self.prompt("Save as (ESC to cancel)"){
+                self.filename = filename;
+            } else {
+                self.set_status_msg(String::from("Save aborted"));
+                return;
+            }
         }
        
         let buf = self.row_to_string(); 
@@ -429,5 +434,56 @@ impl Editor {
         }
         self.cursor.y += 1;
         self.cursor.x = 0;
+    }
+
+    // Prompts the user if saves without filename
+    fn prompt(&mut self, pmsg: &str) -> Option<String> {
+        let mut buf = String::from("");
+
+        loop {
+            self.set_status_msg(format!("{}: {}", pmsg, buf));
+            let _ = self.refresh_screen();
+            if let Ok(c) = self.keyboard.read_key() {
+                match c {                    
+                    KeyEvent { 
+                        code: KeyCode::Enter,
+                        ..
+                    } => {
+                        self.set_status_msg("".to_string());
+                        return Some(buf);
+                    },
+
+                    KeyEvent {
+                        code: KeyCode::Esc,
+                        ..
+                    } => { 
+                        self.set_status_msg("".to_string());
+                        return None;
+                    },
+
+                    KeyEvent {
+                        code: KeyCode::Char(ch),
+                        modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT
+                    } => {
+                        buf.push(ch);
+                    },
+
+                    KeyEvent {
+                        code: KeyCode::Backspace | KeyCode::Delete,
+                        ..
+                    }
+                    |
+                    KeyEvent {
+                        code: KeyCode::Char('h'),
+                        modifiers: KeyModifiers::CONTROL
+                    } => {
+                        buf.pop();
+                    },
+
+                    _=> {}
+
+                }
+            }
+        }
     }
 }
