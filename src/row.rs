@@ -82,6 +82,16 @@ impl Row {
         self.characters.push_str(s);
         self.render = Row::render_row(&self.characters);
     }
+    
+    // Function to split the text of a row, where the cursor is, like when we press Enter
+    pub fn rowsplit(&mut self, from: usize) -> String {
+        // split_off -> returns [from, len) and updates self to [0, from)
+        let next_row = self.characters.split_off(from);
+        self.render = Row::render_row(&self.characters);
+
+        next_row
+    }
+
 }
 
 

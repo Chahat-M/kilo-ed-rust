@@ -142,7 +142,7 @@ impl Editor {
                     modifiers : KeyModifiers::NONE | KeyModifiers::SHIFT 
                 } => self.editor_insert_char(key),
 
-                // Saving file
+                // Saving file 
                 KeyEvent {
                     code : KeyCode::Char('s'),
                     modifiers : KeyModifiers::CONTROL,
@@ -166,6 +166,11 @@ impl Editor {
                         self.move_cursor(EditorKey::ArrowRight);
                         self.editor_del_char();
                     },
+                
+                KeyEvent {
+                    code : KeyCode::Enter,
+                    modifiers : KeyModifiers::NONE
+                } => self.insert_new_line(),
 
                 // Cursor movement through arrow keys
                 KeyEvent { code, modifiers : _ } => match code {
@@ -328,15 +333,19 @@ impl Editor {
 
     fn editor_insert_char(&mut self, c: char) {
         if self.cursor.y as usize == self.rows.len() {
-            self.append_row(String::new());
+            self.insert_row(self.rows.len(), String::new());
         }
         self.rows[self.cursor.y as usize].row_insert_char(self.cursor.x as usize, c);
         self.cursor.x += 1;
         self.dirty += 1;
     }
 
-    fn append_row(&mut self, s: String){
-        self.rows.push(Row::new(s));
+    fn insert_row(&mut self, at: usize, s: String){
+        if at > self.rows.len() {
+            return;
+        }
+
+        self.rows.insert(at, Row::new(s));
         self.dirty += 1;
     }
 
@@ -409,5 +418,16 @@ impl Editor {
             Some(self.rows.remove(at).characters)
         }
 
+    }
+
+    fn insert_new_line(&mut self){
+        if self.cursor.x == 0 {
+            self.insert_row(self.cursor.y as usize, "".to_string());
+        } else {
+            let new_row = self.rows[self.cursor.y as usize].rowsplit(self.cursor.x as usize);
+            self.insert_row(self.cursor.y as usize + 1, new_row);
+        }
+        self.cursor.y += 1;
+        self.cursor.x = 0;
     }
 }
