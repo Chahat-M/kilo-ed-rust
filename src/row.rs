@@ -56,6 +56,24 @@ impl Row {
         rx as u16
     }
 
+    /*
+    pub fn renderx_to_cursorx(&self, rx: usize) -> u16 {
+        let mut current_rx = 0;
+
+        for (cx, c) in self.characters.chars().enumerate() {
+            if c == '\t' {
+                current_rx += (KILO_TAB_STOP - 1) - (current_rx % KILO_TAB_STOP);
+            }
+            current_rx += 1;
+
+            if current_rx > rx {
+                return cx as u16;
+            }
+        }
+        self.characters.len() as u16
+    }
+    */
+
     // Function to insert a character at any position
     pub fn row_insert_char(&mut self, at: usize, c: char) {
         if at >= self.characters.len() {

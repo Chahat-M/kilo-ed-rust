@@ -83,7 +83,7 @@ impl Editor {
             coloff : 0,
             filename : filename.into(),
             status_time : Instant::now(), // Current time
-            status_msg : String::from("Help: Press Ctrl-q to exit | Ctrl-s to save"),
+            status_msg : String::from("Help: Press Ctrl-q to exit | Ctrl-s to save | Ctrl-f to find"),
             render_x : 0,
             dirty: 0, 
             quit_times: KILO_QUIT_TIMES
@@ -169,6 +169,13 @@ impl Editor {
                     code : KeyCode::Enter,
                     modifiers : KeyModifiers::NONE
                 } => self.insert_new_line(),
+
+                // Find
+                KeyEvent {
+                    code : KeyCode::Char('f'),
+                    modifiers : KeyModifiers::CONTROL,
+                } => self.find(),
+
 
                 // Cursor movement through arrow keys
                 KeyEvent { code, modifiers : _ } => match code {
@@ -484,4 +491,20 @@ impl Editor {
             }
         }
     }
+    
+    // To search a particular character or string in file
+    fn find(&mut self) {
+        if let Some(query) = self.prompt("Search (ESC to cancel)") {
+           for (i, row) in self.rows.iter().enumerate() {
+                if let Some(m) = row.characters.match_indices(query.as_str()).take(1).next() {
+                    self.cursor.y = i as u16;
+                    self.cursor.x = m.0 as u16;
+                    self.rowoff = self.rows.len() as u16;
+                    break;
+                }
+            }
+        } 
+    }
+
+
 }
