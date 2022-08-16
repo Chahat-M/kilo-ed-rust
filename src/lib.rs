@@ -6,7 +6,7 @@ pub enum ResultCode {
     KeyReadFail
 }
 
-#[derive(Default)]  // Gives default values to the argument
+#[derive(Default, Copy, Clone)]  // Gives default values to the argument
 pub struct CursorPos {
     pub x : u16,
     pub y : u16,

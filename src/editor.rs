@@ -513,12 +513,20 @@ impl Editor {
             }
         }
     }
+   
+    // Function to call find_callback() and restore cursor position
+    fn find(&mut self) {
+        // Saving cursor position and scroll position
+        let (saved_position, saved_coloff, saved_rowoff) = (self.cursor, self.coloff, self.rowoff);
+
+        if self.prompt("Search (ESC to cancel)", Some(Editor::find_callback)).is_none() {
+            self.cursor = saved_position;
+            self.coloff = saved_coloff;
+            self.rowoff = saved_rowoff;
+        }
+    }
     
     // To search a particular character or string in file
-    fn find(&mut self) {
-        self.prompt("Search (ESC to cancel)", Some(Editor::find_callback)); 
-    }
-
     fn find_callback(&mut self, query: &str, event: PromptKey) {
         if matches!(event, PromptKey::Enter | PromptKey::Escape) {
             return;

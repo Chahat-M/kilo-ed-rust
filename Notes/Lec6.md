@@ -398,3 +398,36 @@ Now let's move the searching code of `find()` to another function `find_callback
 ```
 
 Now we can observe the search results after each keypress. Also, on pressing Enter or Escape we leave the search mode.
+
+## Restore cursor position on Escape
+
+We want that on pressing Escape, the user shall go back to the position in the file where they started the search. For this, let's save the cursor's position and scroll position before the search and restore those value after Escape is entered.
+
+```rust
+// editor.rs
+    fn find(&mut self) {
+        // Saving cursor position and scroll position
+        let (saved_position, saved_coloff, saved_rowoff) = (self.cursor, self.coloff, self.rowoff);
+
+        if self.prompt("Search (ESC to cancel)", Some(Editor::find_callback)).is_none() {
+            self.cursor = saved_position;
+            self.coloff = saved_coloff;
+            self.rowoff = saved_rowoff;
+        }
+    }
+
+```
+
+We'll store the cursor position. If the search query is empty i.e Escape is pressed we will restore the cursor position. But this code won't compile successfully, as we will run through an error of Copy trait becuase of `self.cursor`. `cursor` is of type `CursorPos` which has to be updated to allow its use.
+
+```rust
+// lib.rs
+#[derive(Default, Copy, Clone)]
+pub struct CursorPos {
+    pub x : u16,
+    pub y : u16,
+}
+
+```
+
+Now we can restore the cursor position and scroll position on pressing Escape and the cursor remains at the search query on pressing Enter.
