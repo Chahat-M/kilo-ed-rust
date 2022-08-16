@@ -279,3 +279,122 @@ Let's now call this function when we press Ctrl-f and also update the status mes
     }
 
 ```
+
+## Incremental Search ( Step 135 - 137 )
+
+Now let's improve our search such that we find the match after each character is pressed. To implement this, we'll modify our `prompt()` to take a callback function as an argument. Also, let's call this function after each keypress, passing the current search query and the key pressed at last. For this we can define an `enum PromptKey` to hold the possible keypresses i.e Enter, Escape or any character. Let's declare this enum at the top of the file after all the import statements.
+
+```rust
+// editor.rs
+enum PromptKey {
+    Enter,
+    Escape,
+    Char(char)
+}
+
+```
+Let's modify the `prompt()` as per the requirements above.
+
+```rust
+// editor.rs
+    fn prompt(
+        &mut self, 
+        pmsg: &str, 
+        callback: Option<fn(&mut Editor, &str, PromptKey)>) -> Option<String> {
+        let mut buf = String::from("");
+	/*...*/
+        
+	let mut prompt_key: Option<PromptKey> = None;
+
+	match c {                    
+	    KeyEvent { 
+		code: KeyCode::Enter,
+	      	..
+	    } => {
+		if let Some(callback) = callback {
+			callback(self, &buf, PromptKey::Enter);
+		}
+		self.set_status_msg("".to_string());
+		return Some(buf);
+	    },
+
+	    KeyEvent {
+                code: KeyCode::Esc,
+                ..
+            } => { 
+                if let Some(callback) = callback {
+                        callback(self, &buf, PromptKey::Escape);
+                }
+                self.set_status_msg("".to_string());
+                return None;
+	    },
+
+            KeyEvent {
+	    	code: KeyCode::Char(ch),
+                modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT
+            } => {
+	    	prompt_key = Some(PromptKey::Char(ch));
+                buf.push(ch);
+            },
+
+	    _=> {}
+	}
+	if let Some(callback) = callback {
+        	if let Some(key) = prompt_key {
+                        callback(self, &buf, key);
+                }
+        }
+
+```
+
+Note - Explanation of None 
+
+```rust
+// editor.rs
+    fn find(&mut self) {
+        if let Some(query) = self.prompt("Search (ESC to cancel)", None) { 
+	/*...*/
+	}
+    }
+
+    fn save(&mut self) {
+	if self.filename.is_empty() {
+		if let Some(filename) = self.prompt("Save as (ESC to cancel)", None){
+			self.filename = filename;
+		}
+		/*...*/
+	}
+    }
+
+```
+
+Now let's move the searching code of `find()` to another function `find_callback()`, which will be the callback argument for `prompt()`. Also, let's leave the search mode if the user presses Enter or Escape key.
+
+```rust
+// editor.rs
+    fn find_callback(&mut self, query: &str, event: PromptKey) {
+        if matches!(event, PromptKey::Enter | PromptKey::Escape) {
+            return;
+        }
+
+        for (i, row) in self.rows.iter().enumerate() {
+            if let Some(m) = row.characters.match_indices(query).take(1).next() {
+                self.cursor.y = i as u16;
+                self.cursor.x = m.0 as u16;
+                self.rowoff = self.rows.len() as u16;
+                break;
+            }
+        }
+    }
+
+```
+
+```rust
+// editor.rs
+    fn find(&mut self) {
+        self.prompt("Search (ESC to cancel)", Some(Editor::find_callback)); 
+    }
+
+```
+
+Now we can observe the search results after each keypress. Also, on pressing Enter or Escape we leave the search mode.

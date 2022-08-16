@@ -20,6 +20,12 @@ use std::time::{Instant, Duration};
 
 const KILO_QUIT_TIMES: usize = 3;
 
+enum PromptKey {
+    Enter,
+    Escape,
+    Char(char)
+}
+
 // Copy -> to give EditorKey Copy semantics instead of Move semantics
 // Clone -> to create T from &T via a copy
 // Types that are Copy should have a trivial implementation of Clone, hence both used.
@@ -368,7 +374,7 @@ impl Editor {
 
     fn save(&mut self) {
         if self.filename.is_empty() {
-            if let Some(filename) = self.prompt("Save as (ESC to cancel)"){
+            if let Some(filename) = self.prompt("Save as (ESC to cancel)", None){
                 self.filename = filename;
             } else {
                 self.set_status_msg(String::from("Save aborted"));
@@ -442,18 +448,25 @@ impl Editor {
     }
 
     // Prompts the user if saves without filename
-    fn prompt(&mut self, pmsg: &str) -> Option<String> {
+    fn prompt(
+        &mut self, 
+        pmsg: &str, 
+        callback: Option<fn(&mut Editor, &str, PromptKey)>) -> Option<String> {
         let mut buf = String::from("");
 
         loop {
             self.set_status_msg(format!("{}: {}", pmsg, buf));
             let _ = self.refresh_screen();
             if let Ok(c) = self.keyboard.read_key() {
+                let mut prompt_key: Option<PromptKey> = None;
                 match c {                    
                     KeyEvent { 
                         code: KeyCode::Enter,
                         ..
                     } => {
+                        if let Some(callback) = callback {
+                            callback(self, &buf, PromptKey::Enter);
+                        }
                         self.set_status_msg("".to_string());
                         return Some(buf);
                     },
@@ -462,6 +475,9 @@ impl Editor {
                         code: KeyCode::Esc,
                         ..
                     } => { 
+                        if let Some(callback) = callback {
+                            callback(self, &buf, PromptKey::Escape);
+                        }
                         self.set_status_msg("".to_string());
                         return None;
                     },
@@ -470,6 +486,7 @@ impl Editor {
                         code: KeyCode::Char(ch),
                         modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT
                     } => {
+                        prompt_key = Some(PromptKey::Char(ch));
                         buf.push(ch);
                     },
 
@@ -488,23 +505,32 @@ impl Editor {
                     _=> {}
 
                 }
+                if let Some(callback) = callback {
+                    if let Some(key) = prompt_key {
+                        callback(self, &buf, key);
+                    }
+                }
             }
         }
     }
     
     // To search a particular character or string in file
     fn find(&mut self) {
-        if let Some(query) = self.prompt("Search (ESC to cancel)") {
-           for (i, row) in self.rows.iter().enumerate() {
-                if let Some(m) = row.characters.match_indices(query.as_str()).take(1).next() {
-                    self.cursor.y = i as u16;
-                    self.cursor.x = m.0 as u16;
-                    self.rowoff = self.rows.len() as u16;
-                    break;
-                }
-            }
-        } 
+        self.prompt("Search (ESC to cancel)", Some(Editor::find_callback)); 
     }
 
+    fn find_callback(&mut self, query: &str, event: PromptKey) {
+        if matches!(event, PromptKey::Enter | PromptKey::Escape) {
+            return;
+        }
 
+        for (i, row) in self.rows.iter().enumerate() {
+            if let Some(m) = row.characters.match_indices(query).take(1).next() {
+                self.cursor.y = i as u16;
+                self.cursor.x = m.0 as u16;
+                self.rowoff = self.rows.len() as u16;
+                break;
+            }
+        }
+    }
 }
