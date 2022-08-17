@@ -23,7 +23,9 @@ const KILO_QUIT_TIMES: usize = 3;
 enum PromptKey {
     Enter,
     Escape,
-    Char(char)
+    Char(char),
+    Prev,
+    Next
 }
 
 // Copy -> to give EditorKey Copy semantics instead of Move semantics
@@ -35,6 +37,11 @@ enum EditorKey {
     ArrowDown,
     ArrowLeft,
     ArrowRight
+}
+
+enum SearchDirection {
+    Forward,
+    Backward
 }
 
 pub struct Editor {
@@ -49,7 +56,9 @@ pub struct Editor {
     status_msg: String,
     render_x: u16,
     dirty: usize,
-    quit_times: usize
+    quit_times: usize,
+    last_match: Option<usize>,
+    direction: SearchDirection
 }
 
 impl Editor {
@@ -92,7 +101,9 @@ impl Editor {
             status_msg : String::from("Help: Press Ctrl-q to exit | Ctrl-s to save | Ctrl-f to find"),
             render_x : 0,
             dirty: 0, 
-            quit_times: KILO_QUIT_TIMES
+            quit_times: KILO_QUIT_TIMES,
+            last_match: None,
+            direction: SearchDirection::Forward
         })
     }
     
@@ -502,6 +513,34 @@ impl Editor {
                         buf.pop();
                     },
 
+                    KeyEvent {
+                        code: KeyCode::Down,
+                        ..
+                    }
+                    | 
+                    KeyEvent {
+                        code: KeyCode::Right,
+                        ..
+                    } => {
+                        if let Some(callback) = callback {
+                            callback(self, &buf, PromptKey::Next);
+                        }
+                    },
+
+                    KeyEvent {
+                        code: KeyCode::Up,
+                        ..
+                    }
+                    |
+                    KeyEvent {
+                        code: KeyCode::Left,
+                        ..
+                    } => {
+                        if let Some(callback) = callback {
+                            callback(self, &buf, PromptKey::Prev);
+                        }
+                    },
+
                     _=> {}
 
                 }
@@ -519,7 +558,7 @@ impl Editor {
         // Saving cursor position and scroll position
         let (saved_position, saved_coloff, saved_rowoff) = (self.cursor, self.coloff, self.rowoff);
 
-        if self.prompt("Search (ESC to cancel)", Some(Editor::find_callback)).is_none() {
+        if self.prompt("Search (Use Arrow/Enter/Esc)", Some(Editor::find_callback)).is_none() {
             self.cursor = saved_position;
             self.coloff = saved_coloff;
             self.rowoff = saved_rowoff;
@@ -528,13 +567,53 @@ impl Editor {
     
     // To search a particular character or string in file
     fn find_callback(&mut self, query: &str, event: PromptKey) {
-        if matches!(event, PromptKey::Enter | PromptKey::Escape) {
-            return;
+        // To enable forward and backward search
+        match event {
+            PromptKey::Enter | PromptKey::Escape => {
+                self.last_match = None;
+                self.direction = SearchDirection::Forward;
+            }
+
+            PromptKey::Next => self.direction = SearchDirection::Forward,
+            PromptKey::Prev => self.direction = SearchDirection::Backward,
+            _=> {
+                self.last_match = None;
+                self.direction = SearchDirection::Forward;
+            }
         }
 
-        for (i, row) in self.rows.iter().enumerate() {
-            if let Some(m) = row.characters.match_indices(query).take(1).next() {
-                self.cursor.y = i as u16;
+        let mut current = if let Some(line) = self.last_match {
+            line
+        } else {
+            self.direction = SearchDirection::Forward;
+            self.rows.len()
+        };
+
+        for _ in 0..self.rows.len() {
+            match self.direction {
+                SearchDirection::Forward => {
+                    current += 1;
+                    if current >= self.rows.len() {
+                        current = 0;
+                    }
+                },
+                
+                SearchDirection::Backward => {
+                    if current == 0 {
+                        current = self.rows.len() - 1;
+                    } else {
+                        current -= 1;
+                    }
+                }
+            }
+
+            if let Some(m) = self.rows[current].characters
+                .match_indices(query)
+                .take(1)
+                .next() 
+            {   
+                self.last_match = Some(current);
+                self.cursor.y = current as u16;
                 self.cursor.x = m.0 as u16;
                 self.rowoff = self.rows.len() as u16;
                 break;

@@ -399,7 +399,7 @@ Now let's move the searching code of `find()` to another function `find_callback
 
 Now we can observe the search results after each keypress. Also, on pressing Enter or Escape we leave the search mode.
 
-## Restore cursor position on Escape
+## Restore cursor position on Escape ( Step 138 )
 
 We want that on pressing Escape, the user shall go back to the position in the file where they started the search. For this, let's save the cursor's position and scroll position before the search and restore those value after Escape is entered.
 
@@ -431,3 +431,172 @@ pub struct CursorPos {
 ```
 
 Now we can restore the cursor position and scroll position on pressing Escape and the cursor remains at the search query on pressing Enter.
+
+## Search Forward and Backward ( Step 139 - 141 ) 
+
+In our search feature we would like to allow the user to move to the next or previous occurrences of the matched word using the Arrow keys. For this, let's create another `enum SearchDirection` to have forward and backward direction for the search and initialize a variable `direction` implementing it. Also, let's store the index of the row the last matched word was in a new variable `last_match`.
+
+```rust
+// editor.rs
+enum SearchDirection {
+    Forward,
+    Backward
+}
+
+pub struct Editor {
+    /*...*/
+    last_match: Option<usize>,
+    direction: SearchDirection
+}
+
+fn build<T: Into<String>>(data: &[String], filename: T) -> Result<Self> {
+        Ok(Self {
+		/*...*/
+		last_match : None;
+		direction : SearchDirection::Forward
+	})
+}
+
+```
+
+We initialize `last_match` to None if there was no last matched value, and `direction` to search forward. Now, let's add code for arrow keys to move forward and backward through the matched value. So, we'll add Prev and Next to our `enum PromptKey` so that we can move to previous values on Up and Left arrow and to next values on pressing Down and Right arrow.
+
+```rust
+// editor.rs
+enum PromptKey {
+    /*...*/
+    Prev,
+    Next
+}
+
+    fn prompt(     
+        &mut self,  
+        pmsg: &str, 
+        callback: Option<fn(&mut Editor, &str, PromptKey)>) -> Option<String> {
+		let mut buf = String::from("");
+
+        loop {
+            self.set_status_msg(format!("{}: {}", pmsg, buf));
+            let _ = self.refresh_screen();
+	    if let Ok(c) = self.keyboard.read_key() {
+		    let mut prompt_key: Option<PromptKey> = None;
+		    match c { 
+			    /*...*/
+			    KeyEvent {
+				code: KeyCode::Down,
+	      			..
+			    }
+			    | 
+			    KeyEvent {
+				code: KeyCode::Right,
+	      			..
+			    } => {
+				    if let Some(callback) = callback {
+					    callback(self, &buf, PromptKey::Next);
+				    }
+			    },
+
+	      	            KeyEvent {
+				code: KeyCode::Up,
+      				..
+	      		    }
+			    |
+			    KeyEvent {
+				code: KeyCode::Left,
+      				..
+			    } => {
+				    if let Some(callback) = callback {
+					    callback(self, &buf, PromptKey::Prev);
+				    }
+			    },
+			    
+			    _=> {}
+		 }
+      		 /*...*/
+	     }
+        }
+    }
+
+```
+
+Let's update our `find_callback()` function to take us to the matched words. 
+
+```rust
+// editor.rs
+    fn find_callback(&mut self, query: &str, event: PromptKey) {
+        // To enable forward and backward search
+        match event {
+            PromptKey::Enter | PromptKey::Escape => {
+                self.last_match = None;
+                self.direction = SearchDirection::Forward;
+            }
+
+            PromptKey::Next => self.direction = SearchDirection::Forward,
+            PromptKey::Prev => self.direction = SearchDirection::Backward,
+            _=> {
+                self.last_match = None;
+                self.direction = SearchDirection::Forward;
+            }
+        }
+
+        let mut current = if let Some(line) = self.last_match {
+            line
+        } else {
+            self.direction = SearchDirection::Forward;
+            self.rows.len()
+        };
+
+        for _ in 0..self.rows.len() {
+            match self.direction {
+                SearchDirection::Forward => {
+                    current += 1;
+                    if current >= self.rows.len() {
+                        current = 0;
+                    }
+                },
+                
+                SearchDirection::Backward => {
+                    if current == 0 {
+                        current = self.rows.len() - 1;
+                    } else {
+                        current -= 1;
+                    }
+                }
+            }
+
+            if let Some(m) = self.rows[current].characters
+                .match_indices(query)
+                .take(1)
+                .next() 
+            {   
+                self.last_match = Some(current);
+                self.cursor.y = current as u16;
+                self.cursor.x = m.0 as u16;
+                self.rowoff = self.rows.len() as u16;
+                break;
+            }
+        }
+    }
+
+```
+
+We reset the `last_match` and `direction` to their initialized values, to be ready for the next match when the user pressed Enter or Escape. We assign movements to `Next` and `Prev`, so that the cursor reaches the matched value on pressing arrow keys.  
+
+We create a new variable `current` to store the index of the row we are currently searching. If there is a last match it holds that value else reaches to the end of the file. We loop through the entire file, and if the `direction` is Forward then we increment the current to be at new position we are on and in case the value of current reaches the end of the file, we continue from the top; thus allowing the search to wrap around. If the `direction` is Backward then we decrement current, but before that we check if current is at top, if so then we continue from the end of the file.
+
+Also, replace `row` with `self.rows[current]` i.e the row we are at currently. Now, let's just display the message to let the user know about forward and backward search.
+
+```rust
+// editor.rs
+    fn find(&mut self) {
+    	/*...*/                      
+        if self.prompt("Search (Use Arrow/Enter/Esc)", Some(Editor::find_callback)).is_none() {
+            self.cursor = saved_position;
+            self.coloff = saved_coloff;
+            self.rowoff = saved_rowoff;
+        }
+    }
+
+```
+
+And here we are done with implementing the Search feature to make our editor more interactive and user friendly!!
