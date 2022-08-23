@@ -2,7 +2,7 @@ use std::io::{stdout, Write, Stdout};
 
 use crossterm::{
     QueueableCommand, 
-    style::{Print, Color, Colors, SetColors, ResetColor},
+    style::{Print, Color, Colors, SetColors, ResetColor, SetForegroundColor},
     terminal,
     cursor,
     Result};
@@ -90,9 +90,20 @@ impl Screen {
                             self.width as usize }
                        else {
                             len };
-                self.stdout
-                    .queue(cursor::MoveTo(0,row))?
-                    .queue(Print(erows[filerow].render[start..end].to_string()))?;
+                
+                self.stdout.queue(cursor::MoveTo(0,row))?;
+
+                for ch in erows[filerow].render[start..end].to_string().chars() {
+                    if ch.is_digit(10) {
+                        self.stdout
+                            .queue(SetForegroundColor(Color::Red))?
+                            .queue(Print(ch))?
+                            .queue(SetForegroundColor(Color::Reset))?;
+                    } else {
+                        self.stdout
+                            .queue(Print(ch))?;
+                    }
+                }
             }
         }
         
