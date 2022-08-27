@@ -50,7 +50,7 @@ fn move_cursor(&mut self, key : EditorKey) {
 
 The cursor doesn't interact properly with tabs. We can even check this by creating a tabs.txt file that contains some text with tabs as well. We may notice that when there are multiple ttabs, the cursor skips it and moves to the next line, if any. To resolve this let's renders tab as multiple space characters.
 
-To do so, create a new file and add `struct Row` that holds chars and render as strings. Implement the Row and define a new() function that takes the characters of the file as an argument and add these codes.
+To do so, create a new file and add `struct Row` that holds chars and render as strings. Implement the Row and define a `render_row()` function that takes the characters of the file as an argument and add these codes along with the new() function.
 
 ```rust
 // row.rs
@@ -63,11 +63,17 @@ pub Struct Row {
 }   
 
 impl Row {
-	pub fn new(chars: String) -> Self {
+
+	pub fn new(characters: String) -> Self {
+		let render = Row::render_row(&characters);
+		Self{characters, render}
+	}
+
+	pub fn render_row(characters: &str) -> String {
 		let mut render = String::new();
 		let mut idx = 0;
 
-		for c in chars.chars() {
+		for c in characters.chars(){
 			match c {
 				'\t' => {
 					render.push(' ');
@@ -75,23 +81,24 @@ impl Row {
 					while idx % KILO_TAB_STOP != 0 {
 						render.push(' ');
 						idx += 1;
-					}   
-				},   
-				_ => {
-					render.push(c); 
-					idx += 1;
-				}
-			}   
-		}   
-		Self {chars, render}
+					}
+				},
+					_ => {
+						render.push(c);
+						idx += 1;
+					}
+			}
+		}
+		render
 	}
+
 }
 
 ```
 
-Firstly, set the tab stop as 8 by defining `const KILO_TAB_STOP: usize = 8`, so that we can easily use and play with it later.
+Firstly, set the tab stop as 8 by defining `const KILO_TAB_STOP: usize = 8`, so that we can easily use and play with it later. In the `new()` function we just call the render_row() function and return.
 
-Now, in the `new()` function we are initalising the render as an empty string for now. We loop through the charachters of the string passed as an argument to `new()`. If the charachter is a tab `\t` we append one space through `render.push()` (because each tab must advance the cursor forward at least one column), and then append spaces until we get to a tab stop, which is a column that is divisible by 8 (KILO_TAB_STOP). This way we are rendering tabs into multiple space charachters. If the charachter is not a tab, we simply append it. Also, we increment the index `idx` everytime we push a charachter to render. Thus, we return the obtained `chars` string alongwith the `render` string that stores all charachters as in the original string along with multiple spaces for tabs.
+Now, in the `render_row()` function we are initalising the render as an empty string for now. We loop through the charachters of the string passed as an argument to `new()`. If the charachter is a tab `\t` we append one space through `render.push()` (because each tab must advance the cursor forward at least one column), and then append spaces until we get to a tab stop, which is a column that is divisible by 8 (KILO_TAB_STOP). This way we are rendering tabs into multiple space charachters. If the charachter is not a tab, we simply append it. Also, we increment the index `idx` everytime we push a charachter to render. Thus, we return the obtained `chars` string alongwith the `render` string that stores all charachters as in the original string along with multiple spaces for tabs.
 
 Also, let's define two more functions to return the length of each string which we'll be using further.
 
